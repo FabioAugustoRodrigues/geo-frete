@@ -1,0 +1,158 @@
+<?php
+
+namespace app\core\controller;
+
+use app\exception\RouteNotFoundException;
+use Closure;
+
+abstract class Router
+{
+    private static $middlewareStack = [];
+
+    const PARAM_PATTERN = '/\{([^\/]+)\}/';
+
+    private static $routes = array(
+        'GET' => array(),
+        'POST' => array(),
+        'PUT' => array(),
+        'DELETE' => array(),
+        'PATCH' => array(),
+        'OPTIONS' => array()
+    );
+
+    private static $middlewares = [];
+
+    public static function addRoute($route, $class, $method, $request_method)
+    {
+        $route = self::transformRouteToRegex($route);
+        $route = self::removeLastSlashFromRoute($route);
+
+        if (!array_key_exists($route, self::$routes[$request_method])) {
+            self::$routes[$request_method][$route] = new Method($class, $method);
+
+            $activeMiddlewares = self::getActiveGroupMiddlewares();
+            if ($activeMiddlewares) {
+                $middlewareKey = self::getMiddlewareKey($request_method, $route);
+                self::$middlewares[$middlewareKey] = array_merge(
+                    self::$middlewares[$middlewareKey] ?? [],
+                    $activeMiddlewares
+                );
+            }
+        }
+    }
+
+    public static function get($route, $class, $method)
+    {
+        self::addRoute($route, $class, $method, "GET");
+    }
+
+    public static function post($route, $class, $method)
+    {
+        self::addRoute($route, $class, $method, "POST");
+    }
+
+    public static function put($route, $class, $method)
+    {
+        self::addRoute($route, $class, $method, "PUT");
+    }
+
+    public static function delete($route, $class, $method)
+    {
+        self::addRoute($route, $class, $method, "DELETE");
+    }
+
+    public static function patch($route, $class, $method)
+    {
+        self::addRoute($route, $class, $method, "PATCH");
+    }
+
+    public static function options($route, $class, $method)
+    {
+        self::addRoute($route, $class, $method, "OPTIONS");
+    }
+
+    public static function addMiddleware($route, $middleware, $request_method)
+    {
+        $route = self::transformRouteToRegex($route);
+        $route = self::removeLastSlashFromRoute($route);
+
+        $middlewareKey = self::getMiddlewareKey($request_method, $route);
+        if (!array_key_exists($middlewareKey, self::$middlewares)) {
+            self::$middlewares[$middlewareKey] = [];
+        }
+
+        self::$middlewares[$middlewareKey][] = $middleware;
+    }
+
+    public static function group(array $options, Closure $callback)
+    {
+        $middleware = $options['middleware'] ?? [];
+        $middleware = is_array($middleware) ? $middleware : [$middleware];
+
+        self::$middlewareStack[] = $middleware;
+
+        call_user_func($callback);
+
+        array_pop(self::$middlewareStack);
+    }
+
+    private static function getActiveGroupMiddlewares(): array
+    {
+        if (empty(self::$middlewareStack)) {
+            return [];
+        }
+
+        return array_merge(...self::$middlewareStack);
+    }
+
+    private static function getMiddlewaresForRoute($route, $request_method)
+    {
+        $middlewareKey = self::getMiddlewareKey($request_method, $route);
+        return self::$middlewares[$middlewareKey] ?? [];
+    }
+
+    private static function getMiddlewareKey($request_method, $route)
+    {
+        return $request_method . ':' . $route;
+    }
+
+    private static function transformRouteToRegex($route)
+    {
+        $route = preg_replace(self::PARAM_PATTERN, '([^\/]+)', $route);
+        $route = '#^' . $route . '$#';
+
+        return $route;
+    }
+
+    private static function removeLastSlashFromRoute($route)
+    {
+        if ($route == "/") {
+            return $route;
+        }
+
+        return rtrim($route, "/");
+    }
+
+    public static function dispatch(Request $request)
+    {
+        $route = self::removeLastSlashFromRoute($request->getUri());
+        $route_without_query_params = parse_url($route, PHP_URL_PATH);
+
+        foreach (self::$routes[$request->getHttp_method()] as $routePattern => $method) {
+            if (preg_match($routePattern, $route_without_query_params, $matches)) {
+                array_shift($matches);
+
+                $middlewares = self::getMiddlewaresForRoute($routePattern, $request->getHttp_method());
+
+                return RequestHandler::handle(
+                    $request,
+                    $method,
+                    $matches,
+                    $middlewares
+                );
+            }
+        }
+
+        throw new RouteNotFoundException();
+    }
+}
