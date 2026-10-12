@@ -1,0 +1,38 @@
+services:
+  api:
+    build: ./docker/php
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      # Overrides the host-oriented values from .env: inside the Compose
+      # network the database is reached by service name on its internal port.
+      DB_HOST: mysql
+      DB_PORT: 3306
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: geo_frete
+      MYSQL_USER: geo_frete
+      MYSQL_PASSWORD: geo_frete
+    ports:
+      # 3307 on the host avoids clashing with a local MySQL (e.g. XAMPP) on 3306.
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./docker/mysql/02-test-database.sql:/docker-entrypoint-initdb.d/02-test-database.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  mysql-data:

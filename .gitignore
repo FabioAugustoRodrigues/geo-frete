@@ -1,6 +1,7 @@
 /vendor/
-
 .env
+.phpunit.result.cache
 
-docker-compose.yml
-Dockerfile
+# Large downloaded datasets: the repository only keeps the scripts that fetch them
+/data/
+/osrm-data/

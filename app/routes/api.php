@@ -3,15 +3,15 @@
 namespace app\routes;
 
 use app\core\controller\Router;
-use app\http\controller\ExampleController;
+use app\http\controller\HealthController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application.
+| JSON endpoints, versioned under /api/v1.
 |
 */
 
-Router::post("/api/getCurrentDateTime", ExampleController::class, "getCurrentDateTime");
+Router::get("/api/v1/health", HealthController::class, "health");

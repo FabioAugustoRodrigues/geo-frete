@@ -4,20 +4,45 @@ use app\cache\CacheFacade;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
+// safeLoad: inside Docker the variables come from the container environment,
+// so a missing .env file must not be fatal. The repository is immutable, which
+// also lets the test bootstrap preset $_ENV values that .env cannot override.
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../../');
-$dotenv->load();
+$dotenv->safeLoad();
+
+// $_ENV is empty for real environment variables when php.ini's variables_order
+// lacks "E" (XAMPP's default), so getenv() is the fallback.
+$env = static function (string $name, string $default = ''): string {
+    if (isset($_ENV[$name])) {
+        return (string) $_ENV[$name];
+    }
+
+    $value = getenv($name);
+
+    return $value === false ? $default : $value;
+};
 
 # ERROR REPORTING
+// Never print errors or stack traces into the HTTP response, even if the
+// server's php.ini enables display_errors: only RequestHandler decides what
+// the client sees. Everything still goes to the log.
+ini_set("display_errors", "0");
+ini_set("display_startup_errors", "0");
+ini_set("log_errors", "1");
 ini_set("error_log", __DIR__ . '/../../storage/logs/error_logs.log');
 
-# DATABASE CONFIGS
-define("DB_DRIVER", $_ENV['DB_DRIVER']);
-define("DB_HOST", $_ENV['DB_HOST']);
-define("DB_USER", $_ENV['DB_USER']);
-define("DB_PASS", $_ENV['DB_PASS']);
-define("DB_NAME", $_ENV['DB_NAME']);
+# ENVIRONMENT
+define("APP_ENV", $env('APP_ENV', 'production'));
 
-# CACHE CONFIGS
-CacheFacade::setCacheType(
-    $_ENV['CACHE_TYPE']
-);
+# DATABASE
+define("DB_DRIVER", $env('DB_DRIVER', 'mysql'));
+define("DB_HOST", $env('DB_HOST', '127.0.0.1'));
+define("DB_PORT", (int) $env('DB_PORT', '3306'));
+define("DB_USER", $env('DB_USER', 'root'));
+define("DB_PASS", $env('DB_PASS'));
+define("DB_NAME", $env('DB_NAME', 'geo_frete'));
+
+# CACHE
+CacheFacade::setCacheType($env('CACHE_TYPE', 'array'));
+
+unset($env);

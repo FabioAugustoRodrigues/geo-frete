@@ -2,16 +2,12 @@
 
 namespace app\routes;
 
-use app\core\controller\Router;
-use app\http\controller\ExampleController;
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register web routes for your application. 
+| HTML pages for humans (no API key). The documentation page at "/" is
+| added in a later phase.
 |
 */
-
-Router::get("/", ExampleController::class, "index");

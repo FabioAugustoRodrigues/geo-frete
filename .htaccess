@@ -1,5 +1,16 @@
 RewriteEngine On
 
+# The document root is the project root (there is no isolated "public/"
+# folder), so sensitive files and folders must be blocked explicitly.
+# Without this, .env, logs and data files would be downloadable by URL.
+RewriteRule ^\.env - [F,L]
+RewriteRule ^\.git(/|$) - [F,L]
+RewriteRule ^\.htaccess$ - [F,L]
+RewriteRule ^(CLAUDE\.md|phpunit\.xml|docker-compose\.yml)$ - [F,L]
+RewriteRule ^composer\.(json|lock)$ - [F,L]
+RewriteRule ^(bin|data|database|docker|osrm-data|storage|vendor)(/|$) - [F,L]
+RewriteRule ^app/(?!views/assets/) - [F,L]
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
