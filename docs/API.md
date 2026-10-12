@@ -1,4 +1,4 @@
-# geo-frete API
+# kmzinho API
 
 Base URL in development: `http://localhost:8080`.
 

@@ -1,4 +1,4 @@
--- geo-frete - technical infrastructure schema
+-- kmzinho - technical infrastructure schema
 -- MySQL 8, InnoDB, utf8mb4
 --
 -- No table here represents a business entity (store, customer, order, user).

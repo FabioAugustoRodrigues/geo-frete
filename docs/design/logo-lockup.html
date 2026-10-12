@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+  Source of docs/images/logo-lockup-light.png and logo-lockup-dark.png
+  (logo + "kmzinho" wordmark, transparent background). Open with "#dark" for
+  the version with light text. See docs/design/README.md to regenerate.
+-->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>kmzinho · logo lockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@800&display=block" rel="stylesheet">
+    <style>
+        * { margin: 0; }
+        html, body { width: 760px; height: 220px; background: transparent; }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+        }
+
+        /* The map fills ~80% of the logo canvas: oversize it to balance the wordmark. */
+        img { width: 200px; height: 200px; margin-right: -8px; }
+
+        .wordmark {
+            font: 800 128px/1 Inter, "Segoe UI", sans-serif;
+            letter-spacing: -0.045em;
+            color: #0F1A14;
+            /* Optical alignment: lowercase x-height sits below the logo's center. */
+            margin-top: -14px;
+        }
+
+        .wordmark .km { color: #009C3B; }
+
+        body.dark .wordmark { color: #F3F7F4; }
+        body.dark .wordmark .km { color: #2FBF62; }
+    </style>
+</head>
+
+<body>
+    <img src="../images/logo-transparent.png" alt="">
+    <div class="wordmark"><span class="km">km</span>zinho</div>
+    <script>
+        if (location.hash === '#dark') {
+            document.body.classList.add('dark');
+        }
+    </script>
+</body>
+
+</html>

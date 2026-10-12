@@ -1,5 +1,5 @@
 {
-    "name": "fabioaugustorodrigues/geo-frete",
+    "name": "fabioaugustorodrigues/kmzinho",
     "type": "project",
     "description": "Open-source REST API that computes real driving-route distances between Brazilian addresses, built on the iMono framework",
     "license": "MIT",

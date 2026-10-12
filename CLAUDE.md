@@ -1,6 +1,7 @@
-# geo-frete
+# kmzinho
 
-Open-source study project: a REST API that computes the **real driving-route distance**
+Open-source study project (formerly "geo-frete"; the local folder and the database
+names `geo_frete`/`geo_frete_test` keep the old name): a REST API that computes the **real driving-route distance**
 between two Brazilian addresses. It knows nothing about prices, customers or orders; it
 only returns distance, duration and the coordinates it used. Business rules belong to
 the consumer.
@@ -89,9 +90,21 @@ docker/                Dockerfiles and data-prep scripts (e.g. OSRM map)
   `503` providers unavailable (temporary, distinct from 422).
 - Never expose stack traces or internal messages in responses; log with `error_log`
   using a tag prefix: `[OSRM ERROR]`, `[CNEFE IMPORT]`, etc.
-- Changed an endpoint? Update `docs/API.md` (and the summary page `app/views/documentation.html`)
-  in the same commit. User-facing docs exist in English (`README.md`) and Portuguese
-  (`README.pt-BR.md`): keep both in sync.
+- Changed an endpoint? Update `docs/API.md` in the same commit.
+
+## Documentation
+
+- `README.md` stays minimal on purpose (logo, one sentence, links, license), like the
+  iMono README. Never grow it: content goes to the full docs.
+- Full docs: `docs/en.md` (English) and `docs/pt-BR.md` (Portuguese), kept in sync:
+  a change to one is a change to both. API reference: `docs/API.md` (English only).
+- Logo: `docs/images/logo.png` (opaque white background). The README header uses the
+  transparent lockups `logo-lockup-light.png`/`logo-lockup-dark.png` (logo + wordmark)
+  inside a `<picture>`, so it works on GitHub's dark theme; sources in `docs/design/`.
+- Architecture diagram: `docs/images/system-design.png`, generated from
+  `docs/design/system-design.html` (steps in `docs/design/README.md`). When the
+  architecture changes (new container, provider, layer or table), update the HTML,
+  regenerate the PNG and the "System design" tables in both docs.
 
 ## Tests
 
@@ -106,7 +119,8 @@ docker/                Dockerfiles and data-prep scripts (e.g. OSRM map)
   keeps only the **scripts** that download and process this data.
 - Sources: CNEFE 2022 at `ftp.ibge.gov.br/Cadastro_Nacional_de_Enderecos_para_Fins_Estatisticos/Censo_Demografico_2022/`;
   OSM extracts at Geofabrik (`download.geofabrik.de/south-america/brazil/`).
-- When using the public Nominatim, respect 1 req/s and send a User-Agent with a real contact.
+- When using the public Nominatim, respect 1 req/s and send a User-Agent identifying the
+  app (its policy requires it; a contact e-mail is optional, but never a fake one).
 
 ## Git
 

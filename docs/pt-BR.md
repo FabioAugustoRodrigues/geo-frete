@@ -1,8 +1,8 @@
-# geo-frete
+# kmzinho
 
-[![tests](https://github.com/FabioAugustoRodrigues/geo-frete/actions/workflows/tests.yml/badge.svg)](https://github.com/FabioAugustoRodrigues/geo-frete/actions/workflows/tests.yml)
+[![tests](https://github.com/FabioAugustoRodrigues/kmzinho/actions/workflows/tests.yml/badge.svg)](https://github.com/FabioAugustoRodrigues/kmzinho/actions/workflows/tests.yml)
 
-*[Read in English](README.md)*
+*[Read in English](en.md)*
 
 API REST open-source que calcula a **distância real de rota** entre dois endereços
 brasileiros, construída sobre o framework PHP [iMono](https://github.com/FabioAugustoRodrigues/iMono).
@@ -31,6 +31,26 @@ endereço digitado -> correção do nome da rua (base de ruas do CNEFE)
 - **OSRM** (Open Source Routing Machine) calcula a rota mais rápida sobre o grafo de
   ruas do OpenStreetMap, em milissegundos, a partir de um mapa pré-processado uma vez.
 
+## Arquitetura (system design)
+
+![Arquitetura do kmzinho](images/system-design.png)
+
+Três containers Docker e três fontes de dados externas:
+
+| Peça | Papel |
+|---|---|
+| **api** (PHP 8.2 + Apache, iMono) | Código em camadas: HTTP (autenticação, rate limit, controllers) → serviços (orquestração, resolução de endereço, correção de ruas) → integrações geográficas atrás de interfaces → repositórios (PDO) |
+| **mysql** (MySQL 8.4) | Só dados técnicos: a base de endereços do CNEFE, o cache do Nominatim, os contadores de rate limit e o controle de ritmo dos provedores |
+| **osrm** (OSRM v26.4) | Serve o grafo de ruas pré-processado da cidade piloto; calcula rotas em milissegundos |
+| **Nominatim** (internet) | Geocodificação de reserva, chamada só quando o CNEFE não localiza o endereço com precisão; com cache e no máximo 1 requisição por segundo |
+| **IBGE** (internet) | Fonte dos arquivos do CNEFE, baixados pelo `bin/import-cnefe.php` (offline) |
+| **Geofabrik** (internet) | Fonte do mapa do OpenStreetMap que o `map-clip` e o `map-build` transformam no mapa de rotas (offline) |
+
+Os passos numerados seguem um `POST /api/v1/distance`. As setas contínuas
+acontecem em toda requisição; as tracejadas são preparação feita uma vez. O
+diagrama é gerado a partir de [design/system-design.html](design/system-design.html);
+veja [design/README.md](design/README.md) para editar e gerar de novo.
+
 ## Resultados
 
 Um atalho comum para calcular frete é "distância em linha reta × 1,3". Medido em 299
@@ -53,8 +73,7 @@ rua", a 680 m do número de casa que o CNEFE conhece.
 
 ## API
 
-Resumo navegável em `http://localhost:8080/`; referência completa (em inglês) em
-[docs/API.md](docs/API.md).
+Referência completa (em inglês): [API.md](API.md).
 
 | Endpoint | |
 |---|---|
@@ -68,7 +87,7 @@ Requisitos: PHP 8.1+ com `curl`, `pdo_mysql`, `mbstring` e `zip`, Composer e Doc
 
 ```bash
 composer install
-cp .env.example .env              # preencha APP_CONTACT com um e-mail real (política do Nominatim)
+cp .env.example .env
 docker compose up -d --build
 curl http://localhost:8080/api/v1/health
 ```
@@ -132,8 +151,41 @@ mesmos pares).
 
 ## Configuração
 
-As variáveis estão descritas, em inglês, no [README principal](README.md#configuration)
-e no [.env.example](.env.example).
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `APP_ENV` | `production` | `production`, `development` ou `testing` (no testing, os provedores viram falsos) |
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` | `127.0.0.1`, `3306`, `root`, vazio, `geo_frete` | conexão com o MySQL |
+| `API_KEYS` | vazio | chaves aceitas, separadas por vírgula; vazio desliga a autenticação |
+| `RATE_LIMIT_PER_MINUTE` | `120` | requisições por minuto por chave (ou por IP, sem autenticação) |
+| `APP_USER_AGENT` | `kmzinho/0.1` | identifica a aplicação para os serviços do OpenStreetMap (exigido pela política de uso) |
+| `APP_CONTACT` | vazio | contato opcional adicionado ao User-Agent; recomendado, mas nunca um contato falso |
+| `NOMINATIM_URL` | `https://nominatim.openstreetmap.org` | geocodificação de reserva |
+| `HTTP_TIMEOUT` | `8` | segundos até uma chamada externa desistir |
+| `IBGE_LOCALITIES_URL` | API de localidades do IBGE | códigos de município, para a importação do CNEFE |
+| `CNEFE_BASE_URL` | FTP do IBGE, CNEFE 2022 por município | de onde os arquivos do CNEFE são baixados |
+| `CNEFE_DATA_DIR` | `data/cnefe` | cache dos downloads do CNEFE |
+| `OSRM_URL` | `http://127.0.0.1:5000` | motor de rotas (o Compose define `http://osrm:5000` para o serviço api) |
+| `OSRM_TIMEOUT` | `3` | segundos de espera pelo OSRM antes de usar a estimativa |
+| `SNAP_WARNING_KM` | `0.3` | quanto um ponto pode ser deslocado até a rua antes de pedir confirmação |
+| `OSRM_MAP_NAME` | `limeira` | nome do mapa montado pelo `map-clip`/`map-build` |
+| `GEOCODING_CACHE_DAYS` | `180` | dias que uma resposta do Nominatim fica em cache |
+| `ROUTE_FACTOR` | `1.3` | multiplicador da linha reta, usado só quando o OSRM não responde |
+
+## Estrutura do projeto
+
+```
+app/http/            controllers e middlewares (chave de API, rate limit)
+app/domain/service/  orquestração: resolução de endereço, correção de ruas, distância
+app/domain/geo/      integrações atrás de interfaces: CNEFE, Nominatim, OSRM
+app/domain/model/    objetos de valor imutáveis
+app/tests/           suítes Unit, Integration (MySQL) e Feature (requisição completa)
+bin/                 importação do CNEFE e o estudo do fator de rota
+docker/              imagem PHP e o pipeline do mapa do OSRM
+```
+
+Todo provedor externo fica atrás de uma interface (`GeocoderInterface`,
+`RoutingEngineInterface`) e é trocado por um falso nos testes, então a suíte nunca
+acessa a internet.
 
 ## Testes
 
@@ -151,4 +203,4 @@ acessível. O CI roda a suíte inteira no PHP 8.1, 8.2 e 8.3 com MySQL 8.4.
 - Dados de mapa © contribuidores do [OpenStreetMap](https://www.openstreetmap.org/copyright),
   sob a Open Database License (ODbL), baixados do [Geofabrik](https://download.geofabrik.de/).
 
-Código: [MIT](LICENSE).
+Código: [MIT](../LICENSE).

@@ -2,16 +2,12 @@
 
 namespace app\routes;
 
-use app\core\controller\Router;
-use app\http\controller\WebController;
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 |
-| HTML pages for humans (no API key), unlike the JSON routes in api.php.
+| HTML pages for humans (no API key). None for now: the documentation
+| lives in the repository (README.md and docs/).
 |
 */
-
-Router::get("/", WebController::class, "documentation");
