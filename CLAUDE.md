@@ -26,6 +26,8 @@ Pilot city: **Limeira/SP** (CNEFE import and OSRM map clipped around it).
 ```bash
 composer install
 docker compose up -d                 # api + mysql + osrm
+docker compose run --rm map-clip     # download region + clip city (OSRM map, step 1)
+docker compose run --rm map-build    # OSRM preprocessing (step 2), then: docker compose restart osrm
 vendor/bin/phpunit                   # all tests
 vendor/bin/phpunit --testsuite Unit  # unit only (no database needed)
 php -S localhost:8080 index.php      # built-in server, without Docker
@@ -54,6 +56,9 @@ docker/                Dockerfiles and data-prep scripts (e.g. OSRM map)
   **no test may depend on the network**.
 - Name routing classes `Routing*`/`Route*`, never `Router`: `app\core\controller\Router`
   is the iMono HTTP router.
+- The `osrm` and `map-build` services must use the **same OSRM image tag**: map files
+  are only readable by the version that built them. Bump both together, then rebuild
+  the map.
 - The database stores technical infrastructure only (cache, address base, rate limit).
   Never add business-entity tables.
 

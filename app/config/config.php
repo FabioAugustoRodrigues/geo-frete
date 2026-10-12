@@ -55,6 +55,11 @@ define("APP_CONTACT", $env('APP_CONTACT'));
 define("NOMINATIM_URL", rtrim($env('NOMINATIM_URL', 'https://nominatim.openstreetmap.org'), '/'));
 define("HTTP_TIMEOUT", (int) $env('HTTP_TIMEOUT', '8'));
 
+# ROUTING
+define("OSRM_URL", rtrim($env('OSRM_URL', 'http://127.0.0.1:5000'), '/'));
+define("OSRM_TIMEOUT", (int) $env('OSRM_TIMEOUT', '3'));
+define("SNAP_WARNING_KM", (float) $env('SNAP_WARNING_KM', '0.3'));
+
 # DISTANCE
 define("GEOCODING_CACHE_DAYS", (int) $env('GEOCODING_CACHE_DAYS', '180'));
 define("ROUTE_FACTOR", (float) $env('ROUTE_FACTOR', '1.3'));

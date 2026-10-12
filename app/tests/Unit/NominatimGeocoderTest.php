@@ -42,7 +42,7 @@ class NominatimGeocoderTest extends TestCase
             public array $responses = [];
             public array $queries = [];
 
-            public function getJson(string $url, array $query = []): ?array
+            public function getJson(string $url, array $query = [], ?int $timeoutSeconds = null): ?array
             {
                 $this->queries[] = $query;
 

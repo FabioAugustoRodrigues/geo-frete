@@ -1,0 +1,3 @@
+# Shell scripts run inside Linux containers: CRLF line endings would break them
+# ("/bin/sh^M: not found") when the repository is checked out on Windows.
+*.sh text eol=lf

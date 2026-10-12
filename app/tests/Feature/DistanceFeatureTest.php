@@ -4,6 +4,7 @@ namespace app\tests\Feature;
 
 use app\database\Connection;
 use app\tests\Fake\GeocoderFake;
+use app\tests\Fake\RoutingEngineFake;
 
 class DistanceFeatureTest extends FeatureTestCase
 {
@@ -12,24 +13,57 @@ class DistanceFeatureTest extends FeatureTestCase
     protected function setUp(): void
     {
         GeocoderFake::reset();
+        RoutingEngineFake::reset();
         Connection::getConnection()->exec('DELETE FROM geocoding_cache');
         Connection::getConnection()->exec('DELETE FROM rate_limit');
     }
 
-    public function testCalculatesTheEstimatedDistance(): void
+    protected function tearDown(): void
+    {
+        RoutingEngineFake::reset();
+    }
+
+    public function testCalculatesTheRouteDistance(): void
     {
         $response = $this->post($this->validRequest());
 
         $this->assertSame(200, $response['status']);
 
         $data = $response['body']['data'];
-        $this->assertSame('estimate', $data['method']);
+        $this->assertSame('route', $data['method']);
         $this->assertGreaterThan(0, $data['straight_line_km']);
-        $this->assertEqualsWithDelta($data['straight_line_km'] * 1.3, $data['distance_km'], 0.02);
+        $this->assertEqualsWithDelta($data['straight_line_km'] * RoutingEngineFake::ROUTE_FACTOR, $data['distance_km'], 0.02);
+        $this->assertEqualsWithDelta($data['distance_km'] / RoutingEngineFake::SPEED_KMH * 60, $data['duration_min'], 0.1);
         $this->assertSame('number', $data['origin']['precision']);
         $this->assertSame('fake', $data['origin']['source']);
+        $this->assertSame(0.01, $data['origin']['snap_distance_km']);
         $this->assertSame('Rua Senador Vergueiro, 500, Centro, Limeira, SP', $data['origin']['formatted_address']);
         $this->assertFalse($data['requires_confirmation']);
+    }
+
+    public function testFallsBackToTheEstimateWhenRoutingIsDown(): void
+    {
+        RoutingEngineFake::makeUnavailable();
+
+        $response = $this->post($this->validRequest());
+
+        $this->assertSame(200, $response['status']);
+
+        $data = $response['body']['data'];
+        $this->assertSame('estimate', $data['method']);
+        $this->assertNull($data['duration_min']);
+        $this->assertNull($data['origin']['snap_distance_km']);
+        $this->assertEqualsWithDelta($data['straight_line_km'] * ROUTE_FACTOR, $data['distance_km'], 0.02);
+    }
+
+    public function testPointFarFromAnyRoadRequiresConfirmation(): void
+    {
+        RoutingEngineFake::snapPointsBy(SNAP_WARNING_KM + 0.1);
+
+        $response = $this->post($this->validRequest());
+
+        $this->assertSame('number', $response['body']['data']['origin']['precision']);
+        $this->assertTrue($response['body']['data']['requires_confirmation']);
     }
 
     public function testClientCoordinatesAreUsedWithoutGeocoding(): void

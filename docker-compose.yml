@@ -6,13 +6,16 @@ services:
     volumes:
       - .:/var/www/html
     environment:
-      # Overrides the host-oriented values from .env: inside the Compose
-      # network the database is reached by service name on its internal port.
+      # Override the host-oriented values from .env: inside the Compose
+      # network services are reached by name on their internal ports.
       DB_HOST: mysql
       DB_PORT: 3306
+      OSRM_URL: http://osrm:5000
     depends_on:
       mysql:
         condition: service_healthy
+      # No dependency on osrm: without it the API keeps answering with
+      # straight-line estimates.
 
   mysql:
     image: mysql:8.4
@@ -33,6 +36,39 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  osrm:
+    # Keep in sync with map-build: OSRM only reads files built by its own version.
+    image: ghcr.io/project-osrm/osrm-backend:v26.4.0
+    # Needs the files built by map-clip + map-build; exits until they exist.
+    command: osrm-routed --algorithm mld /data/${OSRM_MAP_NAME:-limeira}.osrm
+    ports:
+      # Published on localhost only, for php -S on the host and for study.
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - ./osrm-data:/data
+
+  # Map pipeline, run on demand (profile "tools" keeps them out of `up`):
+  #   docker compose run --rm map-clip    # download region + clip the city
+  #   docker compose run --rm map-build   # OSRM preprocessing
+  #   docker compose restart osrm
+  map-clip:
+    build: ./docker/osrm/clip
+    profiles: ["tools"]
+    volumes:
+      - ./osrm-data:/data
+    environment:
+      OSRM_MAP_NAME: ${OSRM_MAP_NAME:-limeira}
+
+  map-build:
+    image: ghcr.io/project-osrm/osrm-backend:v26.4.0
+    profiles: ["tools"]
+    entrypoint: ["sh", "/scripts/build-routing.sh"]
+    volumes:
+      - ./osrm-data:/data
+      - ./docker/osrm/build-routing.sh:/scripts/build-routing.sh:ro
+    environment:
+      OSRM_MAP_NAME: ${OSRM_MAP_NAME:-limeira}
 
 volumes:
   mysql-data:

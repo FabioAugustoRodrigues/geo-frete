@@ -14,27 +14,16 @@ class HttpClient
     /**
      * Returns the decoded JSON body, or null on network failure, non-2xx
      * status or invalid JSON. Never throws: callers decide what a failure means.
+     *
+     * @param int|null $timeoutSeconds overrides the default for this call
      */
-    public function getJson(string $url, array $query = []): ?array
+    public function getJson(string $url, array $query = [], ?int $timeoutSeconds = null): ?array
     {
         $fullUrl = empty($query) ? $url : $url . '?' . http_build_query($query);
 
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $fullUrl,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => $this->timeoutSeconds,
-            CURLOPT_TIMEOUT => $this->timeoutSeconds,
-            CURLOPT_USERAGENT => $this->buildUserAgent(),
-        ]);
+        [$status, $body] = $this->get($fullUrl, $timeoutSeconds ?? $this->timeoutSeconds);
 
-        $body = curl_exec($curl);
-        $error = curl_error($curl);
-        $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        if ($body === false || $error !== '') {
-            error_log("[HTTP CLIENT ERROR] GET {$fullUrl} - {$error}");
+        if ($status === 0) {
             return null;
         }
 
@@ -51,6 +40,44 @@ class HttpClient
         }
 
         return $decoded;
+    }
+
+    /**
+     * True when the server answers at all, whatever the status: some services
+     * (e.g. OSRM) have no health endpoint and reply 4xx to an empty request.
+     */
+    public function isReachable(string $url, int $timeoutSeconds): bool
+    {
+        [$status] = $this->get($url, $timeoutSeconds);
+
+        return $status > 0;
+    }
+
+    /**
+     * @return array{0: int, 1: string|null} HTTP status (0 on network failure) and body
+     */
+    private function get(string $url, int $timeoutSeconds): array
+    {
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => $timeoutSeconds,
+            CURLOPT_TIMEOUT => $timeoutSeconds,
+            CURLOPT_USERAGENT => $this->buildUserAgent(),
+        ]);
+
+        $body = curl_exec($curl);
+        $error = curl_error($curl);
+        $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($body === false || $error !== '') {
+            error_log("[HTTP CLIENT ERROR] GET {$url} - {$error}");
+            return [0, null];
+        }
+
+        return [$status, (string) $body];
     }
 
     /**

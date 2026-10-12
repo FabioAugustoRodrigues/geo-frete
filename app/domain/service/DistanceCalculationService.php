@@ -2,16 +2,22 @@
 
 namespace app\domain\service;
 
+use app\domain\geo\RoutingEngineInterface;
 use app\domain\model\Address;
+use app\domain\model\ResolvedAddress;
 
 class DistanceCalculationService extends ServiceAbstract
 {
-    /** Straight line x route factor; replaced by real routing in a later phase. */
-    public const METHOD_ESTIMATE = 'estimate';
-
+    /**
+     * @param float $snapWarningKm when the routing engine moves a point farther
+     *                             than this to reach a road, the geocoded point
+     *                             is probably wrong and must be confirmed
+     */
     public function __construct(
         private AddressResolverService $addressResolver,
-        private DistanceService $distanceService
+        private RoutingEngineInterface $routingEngine,
+        private DistanceService $distanceService,
+        private float $snapWarningKm
     ) {
     }
 
@@ -22,17 +28,33 @@ class DistanceCalculationService extends ServiceAbstract
         // so the origin biases the destination search.
         $resolvedDestination = $this->addressResolver->resolve($destination, 'destination', $resolvedOrigin->coordinate);
 
-        $from = $resolvedOrigin->coordinate;
-        $to = $resolvedDestination->coordinate;
+        $route = $this->routingEngine->route($resolvedOrigin->coordinate, $resolvedDestination->coordinate);
 
         return [
-            'distance_km' => round($this->distanceService->estimatedRouteKm($from, $to), 2),
-            'straight_line_km' => round($this->distanceService->straightLineKm($from, $to), 2),
-            'method' => self::METHOD_ESTIMATE,
-            'origin' => $resolvedOrigin->toArray(),
-            'destination' => $resolvedDestination->toArray(),
-            'requires_confirmation' => $resolvedOrigin->precision->requiresConfirmation()
-                || $resolvedDestination->precision->requiresConfirmation(),
+            'distance_km' => round($route->distanceKm, 2),
+            'duration_min' => $route->durationMin === null ? null : round($route->durationMin, 1),
+            'straight_line_km' => round(
+                $this->distanceService->straightLineKm($resolvedOrigin->coordinate, $resolvedDestination->coordinate),
+                2
+            ),
+            'method' => $route->method,
+            'origin' => $this->describe($resolvedOrigin, $route->originSnapKm),
+            'destination' => $this->describe($resolvedDestination, $route->destinationSnapKm),
+            'requires_confirmation' => $this->requiresConfirmation($resolvedOrigin, $route->originSnapKm)
+                || $this->requiresConfirmation($resolvedDestination, $route->destinationSnapKm),
         ];
+    }
+
+    private function describe(ResolvedAddress $address, ?float $snapKm): array
+    {
+        return $address->toArray() + [
+            'snap_distance_km' => $snapKm === null ? null : round($snapKm, 3),
+        ];
+    }
+
+    private function requiresConfirmation(ResolvedAddress $address, ?float $snapKm): bool
+    {
+        return $address->precision->requiresConfirmation()
+            || ($snapKm !== null && $snapKm > $this->snapWarningKm);
     }
 }
