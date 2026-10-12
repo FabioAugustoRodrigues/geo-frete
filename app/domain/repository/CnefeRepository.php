@@ -121,6 +121,32 @@ class CnefeRepository extends RepositoryAbstract
     }
 
     /**
+     * Random house numbers of a city, reproducible for a given seed.
+     *
+     * @return array<int, array{street: string, number: int, lat: float, lng: float}>
+     */
+    public function sampleAddresses(int $cityCode, int $count, int $seed): array
+    {
+        $statement = Connection::getConnection()->prepare(
+            "SELECT s.name AS street, a.number, a.lat, a.lng
+             FROM cnefe_addresses a JOIN cnefe_streets s ON s.id = a.street_id
+             WHERE s.city_code = :city
+             ORDER BY RAND(:seed) LIMIT :count"
+        );
+        $statement->bindValue(':city', $cityCode, PDO::PARAM_INT);
+        $statement->bindValue(':seed', $seed, PDO::PARAM_INT);
+        $statement->bindValue(':count', $count, PDO::PARAM_INT);
+        $statement->execute();
+
+        return array_map(fn ($row) => [
+            'street' => $row['street'],
+            'number' => (int) $row['number'],
+            'lat' => (float) $row['lat'],
+            'lng' => (float) $row['lng'],
+        ], $statement->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /**
      * Replaces everything known about a city in one transaction, so a failed
      * import never leaves it half-loaded.
      *

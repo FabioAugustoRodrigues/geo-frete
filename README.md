@@ -1,12 +1,15 @@
 # geo-frete
 
+[![tests](https://github.com/FabioAugustoRodrigues/geo-frete/actions/workflows/tests.yml/badge.svg)](https://github.com/FabioAugustoRodrigues/geo-frete/actions/workflows/tests.yml)
+
+*[Leia em português](README.pt-BR.md)*
+
 Open-source REST API that computes the **real driving-route distance** between two
 Brazilian addresses, built on the [iMono](https://github.com/FabioAugustoRodrigues/iMono)
-PHP framework.
+PHP framework. A study project, piloted in Limeira/SP.
 
-> **Status:** study project. Pilot city: Limeira/SP, with house-number geocoding from
-> IBGE's CNEFE and road routing from OSRM. Any other city works the same way once its
-> data is imported.
+It knows nothing about prices, customers or orders: it reports distance, driving time
+and how precisely each address was located. Business rules belong to the consumer.
 
 ## How it works
 
@@ -20,17 +23,42 @@ address text -> street-name correction (CNEFE street base)
 - **CNEFE** (*Cadastro Nacional de Endereços para Fins Estatísticos*) is the address
   list of Brazil's 2022 Census, published by IBGE with a surveyed coordinate for each
   dwelling. Limeira alone has 92,588 house numbers on 3,013 streets. Numbers missing
-  from it are interpolated between same-side neighbors.
+  from it are interpolated between neighbors on the same side of the street.
 - **Nominatim** geocodes with OpenStreetMap data. In Brazil few house numbers are
-  mapped, so it often finds only the street: the fallback for what CNEFE lacks.
+  mapped, so it often finds only the street: it is the fallback for what CNEFE lacks.
 - **OSRM** (*Open Source Routing Machine*) computes the fastest route over the
   OpenStreetMap road graph, in milliseconds, from a map preprocessed once.
 
-Why it matters: for one Limeira address, Nominatim placed "the middle of the street"
-680 m from the actual house number that CNEFE knows; and the classic "straight line
-x 1.3" estimate came out 15% short of the real road route.
+## Findings
 
-See [docs/API.md](docs/API.md) for the endpoints.
+A common shortcut for delivery fees is "straight-line distance x 1.3". Measured on
+299 random pairs of real house numbers in Limeira, routed by car
+(`bin/compare-distances.php SP Limeira 300 42`):
+
+| | min | median | mean | p90 | max |
+|---|---|---|---|---|---|
+| road route / straight line | 1.09 | 1.46 | 1.51 | 1.81 | 3.50 |
+
+- The x1.3 estimate is off by **11.5% in the median** and 28% at the 90th percentile.
+- Only **43.5%** of the pairs land within 10% of the real route.
+- Worst case: the estimate is **63% too short**. Rivers, highways and dead ends make
+  some routes 3.5x the straight line; no fixed factor can absorb that.
+- The best single factor for this city would be 1.49, and it would still miss the
+  outliers. Hence real routing.
+
+Geocoding matters as much: for one address Nominatim returned "the middle of the
+street", 680 m from the house number CNEFE knows.
+
+## API
+
+Interactive summary at `http://localhost:8080/`; full reference in
+[docs/API.md](docs/API.md).
+
+| Endpoint | |
+|---|---|
+| `POST /api/v1/distance` | road distance and driving time between two addresses |
+| `GET /api/v1/streets/suggestions` | street-name autocomplete from the local base |
+| `GET /api/v1/health` | database and routing-engine status |
 
 ## Running locally
 
@@ -78,7 +106,7 @@ estimates (`"method": "estimate"`). To build the map for the pilot city:
 
 ```bash
 docker compose run --rm map-clip    # downloads the Southeast extract (~860 MB) and clips Limeira
-docker compose run --rm map-build   # OSRM preprocessing of the clipped map
+docker compose run --rm map-build   # OSRM preprocessing of the clipped map (~20 s)
 docker compose restart osrm
 ```
 
@@ -87,6 +115,16 @@ so re-running the three commands (e.g. monthly) refreshes the map. Another city:
 set `OSRM_REGION_URL`, `OSRM_BBOX` (`min_lng,min_lat,max_lng,max_lat`) and
 `OSRM_MAP_NAME` for both steps. Files live in `osrm-data/` (not versioned); the
 regional download in `osrm-data/source/` can be deleted to free space.
+
+### Reproducing the findings
+
+With a city imported and its map built:
+
+```bash
+docker compose exec api php bin/compare-distances.php SP Limeira 300 42
+```
+
+Arguments: state, city, number of pairs, random seed (same seed, same pairs).
 
 ## Configuration
 
@@ -109,6 +147,22 @@ regional download in `osrm-data/source/` can be deleted to free space.
 | `GEOCODING_CACHE_DAYS` | `180` | Days a Nominatim answer stays cached |
 | `ROUTE_FACTOR` | `1.3` | Straight-line multiplier, used only when OSRM cannot answer |
 
+## Project layout
+
+```
+app/http/            controllers and middlewares (API key, rate limit)
+app/domain/service/  orchestration: address resolution, street matching, distance
+app/domain/geo/      integrations behind interfaces: CNEFE, Nominatim, OSRM
+app/domain/model/    immutable value objects
+app/tests/           Unit, Integration (MySQL) and Feature (full request) suites
+bin/                 CNEFE import and the route-factor study
+docker/              PHP image and the OSRM map pipeline
+```
+
+Every external provider sits behind an interface (`GeocoderInterface`,
+`RoutingEngineInterface`) and is swapped for a fake in tests, so the suite never
+touches the network.
+
 ## Tests
 
 ```bash
@@ -116,9 +170,8 @@ vendor/bin/phpunit
 ```
 
 Unit tests need nothing else. Integration and feature tests use the `geo_frete_test`
-database created by Docker Compose and are skipped when it is unreachable. No test
-touches the network: external providers are replaced by fakes, and CNEFE tests load
-a small fictional municipality.
+database created by Docker Compose and are skipped when it is unreachable. CI runs
+the whole suite on PHP 8.1, 8.2 and 8.3 against MySQL 8.4.
 
 ## Data and licenses
 

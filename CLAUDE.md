@@ -29,6 +29,7 @@ docker compose up -d                 # api + mysql + osrm
 docker compose run --rm map-clip     # download region + clip city (OSRM map, step 1)
 docker compose run --rm map-build    # OSRM preprocessing (step 2), then: docker compose restart osrm
 docker compose exec api php bin/import-cnefe.php SP Limeira   # load a city's CNEFE address base
+docker compose exec api php bin/compare-distances.php SP Limeira 300 42   # route-factor study (README "Findings")
 vendor/bin/phpunit                   # all tests
 vendor/bin/phpunit --testsuite Unit  # unit only (no database needed)
 php -S localhost:8080 index.php      # built-in server, without Docker
@@ -88,7 +89,9 @@ docker/                Dockerfiles and data-prep scripts (e.g. OSRM map)
   `503` providers unavailable (temporary, distinct from 422).
 - Never expose stack traces or internal messages in responses; log with `error_log`
   using a tag prefix: `[OSRM ERROR]`, `[CNEFE IMPORT]`, etc.
-- Changed an endpoint? Update `docs/API.md` in the same commit.
+- Changed an endpoint? Update `docs/API.md` (and the summary page `app/views/documentation.html`)
+  in the same commit. User-facing docs exist in English (`README.md`) and Portuguese
+  (`README.pt-BR.md`): keep both in sync.
 
 ## Tests
 

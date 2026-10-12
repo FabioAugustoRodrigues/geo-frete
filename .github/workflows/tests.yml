@@ -1,0 +1,53 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: geo_frete_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=20
+
+    # Integration and feature tests need MySQL; the test bootstrap sets
+    # DB_NAME=geo_frete_test and applies database/schema.sql by itself.
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASS: root
+
+    strategy:
+      matrix:
+        php: ['8.1', '8.2', '8.3']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, mbstring, pdo_mysql, zip
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run tests
+        # --fail-on-skipped: a skipped database test here means the MySQL
+        # service is broken, not that it is absent on purpose.
+        run: vendor/bin/phpunit --fail-on-skipped

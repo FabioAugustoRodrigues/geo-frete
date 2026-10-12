@@ -4,49 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iMono</title>
-
-    <!-- icone -->
-    <link rel="shortcut icon" type="image/x-icon" href="app/views/assets/images/imono_icon.png" />
-
+    <title>Not found · geo-frete</title>
     <style>
-        @import url('https://fonts.cdnfonts.com/css/poppins');
+        :root { --bg: #f8faf9; --text: #1c2523; --muted: #5b6b67; --accent: #0f766e; color-scheme: light; }
 
-        * {
-            font-family: 'Poppins', sans-serif;
+        @media (prefers-color-scheme: dark) {
+            :root { --bg: #111816; --text: #e4ebe9; --muted: #9aaba7; --accent: #4fd1bd; color-scheme: dark; }
         }
 
         body {
-            background-color: #ebebeb;
-            min-height: 100vh;
             margin: 0;
-            overflow-y: hidden;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            padding: 1.25rem;
         }
 
-        .container {
-            margin: 50px;
-        }
-
-        .logo {
-            font-size: 48px;
-            font-weight: bold;
-            color: #5e17eb;
-        }
-
-        .content {
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 5px;
-        }
+        h1 { margin: 0; font-size: 2rem; }
+        p { color: var(--muted); }
+        a { color: var(--accent); }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="logo">iMono</div>
-        <div class="content">
-            <h3>404 - Route not found</h3>
-        </div>
+    <div>
+        <h1>404: route not found</h1>
+        <p>See the <a href="/">API documentation</a> for the available endpoints.</p>
     </div>
 </body>
 
