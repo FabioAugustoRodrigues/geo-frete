@@ -15,6 +15,9 @@
 
 $_ENV['APP_ENV'] = 'testing';
 $_ENV['DB_NAME'] = 'geo_frete_test';
+$_ENV['API_KEYS'] = 'test-key,other-key';
+$_ENV['RATE_LIMIT_PER_MINUTE'] = '1000';
+$_ENV['ROUTE_FACTOR'] = '1.3';
 
 require __DIR__ . '/../../vendor/autoload.php';
 require __DIR__ . '/../config/config.php';

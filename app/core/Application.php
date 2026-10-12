@@ -64,6 +64,13 @@ class Application
                 if (strpos($contentType, 'application/json') !== false) {
                     $jsonData = file_get_contents('php://input');
                     $data = json_decode($jsonData, true);
+
+                    // Malformed JSON (or a scalar body) decodes to a non-array,
+                    // which crashed array_merge() below with a fatal 500. An
+                    // empty payload lets the controller answer with a 400.
+                    if (!is_array($data)) {
+                        $data = [];
+                    }
                 } else {
                     parse_str(file_get_contents('php://input'), $data);
                 }

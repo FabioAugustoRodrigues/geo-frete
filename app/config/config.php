@@ -45,4 +45,18 @@ define("DB_NAME", $env('DB_NAME', 'geo_frete'));
 # CACHE
 CacheFacade::setCacheType($env('CACHE_TYPE', 'array'));
 
+# AUTHENTICATION AND RATE LIMIT
+define("API_KEYS", $env('API_KEYS'));
+define("RATE_LIMIT_PER_MINUTE", (int) $env('RATE_LIMIT_PER_MINUTE', '120'));
+
+# EXTERNAL PROVIDERS
+define("APP_USER_AGENT", $env('APP_USER_AGENT', 'geo-frete/0.1'));
+define("APP_CONTACT", $env('APP_CONTACT'));
+define("NOMINATIM_URL", rtrim($env('NOMINATIM_URL', 'https://nominatim.openstreetmap.org'), '/'));
+define("HTTP_TIMEOUT", (int) $env('HTTP_TIMEOUT', '8'));
+
+# DISTANCE
+define("GEOCODING_CACHE_DAYS", (int) $env('GEOCODING_CACHE_DAYS', '180'));
+define("ROUTE_FACTOR", (float) $env('ROUTE_FACTOR', '1.3'));
+
 unset($env);

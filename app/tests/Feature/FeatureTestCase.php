@@ -31,8 +31,10 @@ abstract class FeatureTestCase extends DatabaseTestCase
         // "headers already sent" once PHPUnit has printed anything. That is
         // harmless here, so it is silenced only at this dispatch point,
         // without touching the framework core.
+        // Controllers print their response, while RequestHandler *returns* the
+        // error response; echoing the return value mirrors Application::run().
         ob_start();
-        @Router::dispatch($request);
+        echo @Router::dispatch($request);
         $body = ob_get_clean();
 
         return [
