@@ -40,7 +40,8 @@ final class AddressNormalizer
 
     /** Street types ("rua", "avenida"...): dropped from the start, people often omit or swap them. */
     private const STREET_TYPES = [
-        'rua', 'avenida', 'alameda', 'travessa', 'estrada', 'rodovia', 'praca', 'largo', 'viela', 'via',
+        'rua', 'avenida', 'alameda', 'travessa', 'travessia', 'estrada', 'rodovia', 'praca', 'largo',
+        'viela', 'via', 'caminho', 'acesso', 'marginal', 'servidao', 'boulevard', 'viaduto',
     ];
 
     /** Portuguese prepositions ("Rua Barão de Jaguara"): carry no meaning for matching. */
@@ -89,6 +90,33 @@ final class AddressNormalizer
         $words = array_filter($words, fn ($word) => !in_array($word, self::PREPOSITIONS, true));
 
         return implode(' ', $words);
+    }
+
+    /**
+     * The street type the user typed ("Av. Brasil" -> "avenida"), or null when
+     * the name does not start with a known type.
+     */
+    public function streetType(string $name): ?string
+    {
+        $words = explode(' ', $this->normalizeText($name));
+        $first = self::ABBREVIATIONS[$words[0]] ?? $words[0];
+
+        return in_array($first, self::STREET_TYPES, true) ? $first : null;
+    }
+
+    /**
+     * The numeric part of a house number ("500", "500A", "500 fundos" -> 500).
+     * Null for "S/N" (sem número, "no number") and anything without digits up front.
+     */
+    public function houseNumber(string $number): ?int
+    {
+        if (preg_match('/^\s*(\d+)/', $number, $matches) !== 1) {
+            return null;
+        }
+
+        $value = (int) $matches[1];
+
+        return $value > 0 ? $value : null;
     }
 
     public function cacheKey(string $state, string $city, string $street, string $number): string

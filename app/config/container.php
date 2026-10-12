@@ -1,5 +1,7 @@
 <?php
 
+use app\domain\geo\CnefeDownloader;
+use app\domain\geo\CnefeGeocoder;
 use app\domain\geo\EstimateRoutingEngine;
 use app\domain\geo\GeocoderInterface;
 use app\domain\geo\HttpClient;
@@ -31,7 +33,15 @@ $definitions = [
         ->constructorParameter('baseUrl', OSRM_URL)
         ->constructorParameter('timeoutSeconds', OSRM_TIMEOUT),
 
+    CnefeDownloader::class => autowire()
+        ->constructorParameter('localitiesApiUrl', IBGE_LOCALITIES_URL)
+        ->constructorParameter('cnefeBaseUrl', CNEFE_BASE_URL)
+        ->constructorParameter('dataDir', CNEFE_DATA_DIR),
+
+    // The local CNEFE base is real in tests too: it lives in the test database.
     AddressResolverService::class => autowire()
+        ->constructorParameter('localGeocoder', get(CnefeGeocoder::class))
+        ->constructorParameter('remoteGeocoder', get(GeocoderInterface::class))
         ->constructorParameter('cacheMaxAgeDays', GEOCODING_CACHE_DAYS),
 
     DistanceCalculationService::class => autowire()

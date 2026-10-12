@@ -28,6 +28,7 @@ composer install
 docker compose up -d                 # api + mysql + osrm
 docker compose run --rm map-clip     # download region + clip city (OSRM map, step 1)
 docker compose run --rm map-build    # OSRM preprocessing (step 2), then: docker compose restart osrm
+docker compose exec api php bin/import-cnefe.php SP Limeira   # load a city's CNEFE address base
 vendor/bin/phpunit                   # all tests
 vendor/bin/phpunit --testsuite Unit  # unit only (no database needed)
 php -S localhost:8080 index.php      # built-in server, without Docker
@@ -40,7 +41,7 @@ app/routes/            routes (api.php = authenticated JSON, web.php = HTML page
 app/http/controller/   translates HTTP <-> domain only; no business logic here
 app/http/middleware/   authentication (API key) and rate limiting
 app/domain/service/    rules and orchestration
-app/domain/geo/        external integrations and geo data (Nominatim, OSRM, CNEFE, ViaCEP)
+app/domain/geo/        external integrations and geo data (Nominatim, OSRM, CNEFE)
 app/domain/repository/ database access (PDO, prepared statements)
 app/domain/model/      immutable value objects (readonly)
 app/domain/exception/  domain exceptions

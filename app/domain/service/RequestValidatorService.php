@@ -14,6 +14,9 @@ class RequestValidatorService extends ServiceAbstract
     private const LNG_MIN = -74.0;
     private const LNG_MAX = -34.0;
 
+    private const DEFAULT_SUGGESTIONS = 5;
+    private const MAX_SUGGESTIONS = 10;
+
     private const MAX_LENGTHS = [
         'street' => 150,
         'number' => 20,
@@ -77,7 +80,55 @@ class RequestValidatorService extends ServiceAbstract
             }
         }
 
+        $confirmed = $address['street_confirmed'] ?? null;
+        if ($confirmed !== null && filter_var($confirmed, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === null) {
+            $errors[] = "The field '{$label}.street_confirmed' must be a boolean.";
+        }
+
         return array_merge($errors, $this->validateCoordinate($address, $label));
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: string, 3: int} street, city, state and limit
+     *
+     * @throws ValidationException
+     */
+    public function validateStreetSuggestionRequest(array $data): array
+    {
+        $errors = [];
+
+        foreach (['street', 'city', 'state'] as $field) {
+            if (!is_scalar($data[$field] ?? null) || trim((string) $data[$field]) === '') {
+                $errors[] = "The field '{$field}' is required.";
+            }
+        }
+
+        foreach (['street' => self::MAX_LENGTHS['street'], 'city' => self::MAX_LENGTHS['city']] as $field => $max) {
+            if (is_scalar($data[$field] ?? null) && mb_strlen((string) $data[$field]) > $max) {
+                $errors[] = "The field '{$field}' must have at most {$max} characters.";
+            }
+        }
+
+        $state = $data['state'] ?? null;
+        if (is_scalar($state) && trim((string) $state) !== '' && !BrazilianState::isValid((string) $state)) {
+            $errors[] = "The field 'state' must be a valid Brazilian state code (e.g. SP).";
+        }
+
+        $limit = self::DEFAULT_SUGGESTIONS;
+        if (isset($data['limit']) && $data['limit'] !== '') {
+            $value = filter_var($data['limit'], FILTER_VALIDATE_INT);
+            if ($value === false || $value < 1 || $value > self::MAX_SUGGESTIONS) {
+                $errors[] = "The field 'limit' must be an integer between 1 and " . self::MAX_SUGGESTIONS . ".";
+            } else {
+                $limit = $value;
+            }
+        }
+
+        if (!empty($errors)) {
+            throw new ValidationException($errors);
+        }
+
+        return [trim((string) $data['street']), trim((string) $data['city']), strtoupper(trim((string) $data['state'])), $limit];
     }
 
     /**

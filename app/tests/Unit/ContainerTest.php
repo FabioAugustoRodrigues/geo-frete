@@ -7,7 +7,9 @@ use app\domain\geo\OsrmRoutingEngine;
 use app\domain\geo\RoutingEngineInterface;
 use app\domain\geo\RoutingEngineWithFallback;
 use app\http\controller\DistanceController;
+use app\domain\service\CnefeImportService;
 use app\http\controller\HealthController;
+use app\http\controller\StreetController;
 use app\http\middleware\RateLimitMiddleware;
 use PHPUnit\Framework\TestCase;
 
@@ -28,5 +30,7 @@ class ContainerTest extends TestCase
         $this->assertInstanceOf(DistanceController::class, $container->get(DistanceController::class));
         $this->assertInstanceOf(HealthController::class, $container->get(HealthController::class));
         $this->assertInstanceOf(RateLimitMiddleware::class, $container->get(RateLimitMiddleware::class));
+        $this->assertInstanceOf(StreetController::class, $container->get(StreetController::class));
+        $this->assertInstanceOf(CnefeImportService::class, $container->get(CnefeImportService::class));
     }
 }

@@ -8,7 +8,10 @@ final class ResolvedAddress
         public readonly Coordinate $coordinate,
         public readonly Precision $precision,
         public readonly string $source,
-        public readonly string $formattedAddress
+        public readonly string $formattedAddress,
+        /** Street name actually geocoded: the corrected one, if it was corrected. */
+        public readonly string $streetUsed,
+        public readonly bool $streetCorrected = false
     ) {
     }
 
@@ -19,6 +22,8 @@ final class ResolvedAddress
             'lng' => $this->coordinate->lng,
             'precision' => $this->precision->value,
             'source' => $this->source,
+            'street_used' => $this->streetUsed,
+            'street_corrected' => $this->streetCorrected,
             'formatted_address' => $this->formattedAddress,
         ];
     }

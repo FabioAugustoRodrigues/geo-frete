@@ -55,6 +55,16 @@ define("APP_CONTACT", $env('APP_CONTACT'));
 define("NOMINATIM_URL", rtrim($env('NOMINATIM_URL', 'https://nominatim.openstreetmap.org'), '/'));
 define("HTTP_TIMEOUT", (int) $env('HTTP_TIMEOUT', '8'));
 
+# CNEFE (IBGE 2022 Census address base)
+define("IBGE_LOCALITIES_URL", rtrim($env('IBGE_LOCALITIES_URL', 'https://servicodados.ibge.gov.br/api/v1/localidades'), '/'));
+define("CNEFE_BASE_URL", rtrim($env(
+    'CNEFE_BASE_URL',
+    'https://ftp.ibge.gov.br/Cadastro_Nacional_de_Enderecos_para_Fins_Estatisticos/Censo_Demografico_2022/Arquivos_CNEFE/CSV/Municipio'
+), '/'));
+// "?:" and not a default argument: an empty CNEFE_DATA_DIR= in .env must not
+// turn into "" (the filesystem root after rtrim).
+define("CNEFE_DATA_DIR", rtrim($env('CNEFE_DATA_DIR') ?: __DIR__ . '/../../data/cnefe', '/'));
+
 # ROUTING
 define("OSRM_URL", rtrim($env('OSRM_URL', 'http://127.0.0.1:5000'), '/'));
 define("OSRM_TIMEOUT", (int) $env('OSRM_TIMEOUT', '3'));

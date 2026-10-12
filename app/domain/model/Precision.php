@@ -11,6 +11,8 @@ enum Precision: string
     case Provided = 'provided';
     /** The exact house number was found. */
     case Number = 'number';
+    /** Estimated between known neighboring numbers of the same street (tens of meters off). */
+    case Interpolated = 'interpolated';
     /** Only the street was found: the point can be anywhere along it. */
     case Street = 'street';
     /** Only the neighborhood was found. */
@@ -23,5 +25,19 @@ enum Precision: string
     public function requiresConfirmation(): bool
     {
         return $this === self::Street || $this === self::Neighborhood;
+    }
+
+    /**
+     * Lower is better; used to keep the best of several geocoders' answers.
+     */
+    public function rank(): int
+    {
+        return match ($this) {
+            self::Provided => 0,
+            self::Number => 1,
+            self::Interpolated => 2,
+            self::Street => 3,
+            self::Neighborhood => 4,
+        };
     }
 }

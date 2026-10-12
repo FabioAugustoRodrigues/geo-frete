@@ -38,6 +38,22 @@ class AddressNormalizerTest extends TestCase
         $this->assertSame('nossa senhora fatima', $this->normalizer->normalizeStreet('R. N. Sra. de Fátima'));
     }
 
+    public function testStreetTypeIsDetectedFromAbbreviations(): void
+    {
+        $this->assertSame('avenida', $this->normalizer->streetType('Av. Brasil'));
+        $this->assertSame('rua', $this->normalizer->streetType('R Tiradentes'));
+        $this->assertNull($this->normalizer->streetType('Senador Vergueiro'));
+    }
+
+    public function testHouseNumberKeepsOnlyTheLeadingDigits(): void
+    {
+        $this->assertSame(500, $this->normalizer->houseNumber('500'));
+        $this->assertSame(500, $this->normalizer->houseNumber(' 500A '));
+        $this->assertSame(12, $this->normalizer->houseNumber('12 fundos'));
+        $this->assertNull($this->normalizer->houseNumber('S/N'));
+        $this->assertNull($this->normalizer->houseNumber('0'));
+    }
+
     public function testCacheKeyIgnoresFormattingDifferences(): void
     {
         $this->assertSame(

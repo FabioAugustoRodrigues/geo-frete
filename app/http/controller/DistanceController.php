@@ -5,6 +5,7 @@ namespace app\http\controller;
 use app\core\controller\ControllerAbstract;
 use app\core\controller\Request;
 use app\domain\exception\AddressNotFoundException;
+use app\domain\exception\AmbiguousStreetException;
 use app\domain\exception\GeocoderUnavailableException;
 use app\domain\exception\ValidationException;
 use app\domain\service\DistanceCalculationService;
@@ -32,6 +33,19 @@ class DistanceController extends ControllerAbstract
             return $this->respondJson(
                 ["data" => ["errors" => $e->getErrors()], "message" => "Invalid data."],
                 400
+            );
+        } catch (AmbiguousStreetException $e) {
+            return $this->respondJson(
+                [
+                    "data" => [
+                        "reason" => "ambiguous_street",
+                        "address" => $e->getLabel(),
+                        "suggestions" => $e->getSuggestions(),
+                    ],
+                    "message" => "Confirm the street of the {$e->getLabel()} address: resend with one of the "
+                        . "suggestions and \"street_confirmed\": true."
+                ],
+                422
             );
         } catch (AddressNotFoundException $e) {
             return $this->respondJson(

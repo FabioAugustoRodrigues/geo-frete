@@ -43,6 +43,59 @@ class HttpClient
     }
 
     /**
+     * Raw body of a 2xx answer (e.g. an HTML directory listing), or null.
+     */
+    public function getText(string $url, ?int $timeoutSeconds = null): ?string
+    {
+        [$status, $body] = $this->get($url, $timeoutSeconds ?? $this->timeoutSeconds);
+
+        if ($status < 200 || $status >= 300) {
+            if ($status !== 0) {
+                error_log("[HTTP CLIENT ERROR] GET {$url} - status {$status}");
+            }
+            return null;
+        }
+
+        return $body;
+    }
+
+    /**
+     * Streams a 2xx answer into a file without holding it in memory.
+     * Returns false (and removes the partial file) on any failure.
+     */
+    public function download(string $url, string $path, int $timeoutSeconds): bool
+    {
+        $file = fopen($path, 'wb');
+        if ($file === false) {
+            return false;
+        }
+
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_FILE => $file,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_CONNECTTIMEOUT => $this->timeoutSeconds,
+            CURLOPT_TIMEOUT => $timeoutSeconds,
+            CURLOPT_USERAGENT => $this->buildUserAgent(),
+        ]);
+
+        $ok = curl_exec($curl) !== false;
+        $error = curl_error($curl);
+        $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+        fclose($file);
+
+        if (!$ok || $status < 200 || $status >= 300) {
+            error_log("[HTTP CLIENT ERROR] download {$url} - status {$status} {$error}");
+            @unlink($path);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * True when the server answers at all, whatever the status: some services
      * (e.g. OSRM) have no health endpoint and reply 4xx to an empty request.
      */
