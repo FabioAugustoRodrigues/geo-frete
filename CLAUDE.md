@@ -62,6 +62,17 @@ docker/                Dockerfiles and data-prep scripts (e.g. OSRM map)
 - The `osrm` and `map-build` services must use the **same OSRM image tag**: map files
   are only readable by the version that built them. Bump both together, then rebuild
   the map.
+- Two stacks: `docker-compose.yml` (development: bind mount, ports open, dev passwords)
+  and `docker-compose.prod.yml` (production: Caddy for HTTPS, code baked by
+  `docker/php/Dockerfile.prod`, only ports 80/443 published, secrets from `.env`,
+  template in `.env.production.example`). A change to a shared service (image tags,
+  commands, volumes) goes into **both** files.
+- Deployment details (server, provider, step-by-step) are **private**: they live only in
+  `private/deploy.md` (gitignored). Never write them into the public docs, README or
+  commit messages.
+- In production the API sits behind Caddy: `REMOTE_ADDR` is the real client only
+  because of mod_remoteip (`docker/php/apache-production.conf`). Anything per-IP
+  (the rate limit counts per key **and** IP) depends on it.
 - The database stores technical infrastructure only (cache, address base, rate limit).
   Never add business-entity tables.
 

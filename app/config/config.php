@@ -45,9 +45,10 @@ define("DB_NAME", $env('DB_NAME', 'geo_frete'));
 # CACHE
 CacheFacade::setCacheType($env('CACHE_TYPE', 'array'));
 
-# AUTHENTICATION AND RATE LIMIT
+# AUTHENTICATION, RATE LIMIT AND CORS
 define("API_KEYS", $env('API_KEYS'));
 define("RATE_LIMIT_PER_MINUTE", (int) $env('RATE_LIMIT_PER_MINUTE', '120'));
+define("CORS_ALLOWED_ORIGINS", $env('CORS_ALLOWED_ORIGINS', '*'));
 
 # EXTERNAL PROVIDERS
 define("APP_USER_AGENT", $env('APP_USER_AGENT', 'kmzinho/0.1'));

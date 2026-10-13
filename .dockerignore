@@ -1,0 +1,16 @@
+# Keeps the production image small and free of secrets and local data.
+.git
+.github
+.env
+.env.*
+!.env.example
+vendor
+data
+osrm-data
+docs
+private
+app/tests
+storage/logs/*.log
+phpunit.xml
+.phpunit.result.cache
+*.md

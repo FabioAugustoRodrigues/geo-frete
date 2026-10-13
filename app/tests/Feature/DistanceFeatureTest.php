@@ -147,20 +147,54 @@ class DistanceFeatureTest extends FeatureTestCase
 
     public function testRateLimitReturns429(): void
     {
+        $this->exhaustQuota('key:other-key|ip:203.0.113.1');
+
+        $limited = $this->postFrom('203.0.113.1', 'other-key');
+        $otherKey = $this->postFrom('203.0.113.1', 'test-key');
+
+        $this->assertSame(429, $limited['status']);
+        $this->assertSame(200, $otherKey['status']);
+    }
+
+    /**
+     * A key published in a web page is shared by all its visitors: one of
+     * them must not exhaust the quota of the others.
+     */
+    public function testSameKeyFromAnotherIpHasItsOwnQuota(): void
+    {
+        $this->exhaustQuota('key:other-key|ip:203.0.113.1');
+
+        $otherVisitor = $this->postFrom('203.0.113.2', 'other-key');
+
+        $this->assertSame(200, $otherVisitor['status']);
+    }
+
+    private function exhaustQuota(string $clientId): void
+    {
         $statement = Connection::getConnection()->prepare(
             'INSERT INTO rate_limit (client_hash, window_minute, total) VALUES (:hash, :window, :total)'
         );
         $statement->execute([
-            ':hash' => hash('sha256', 'key:other-key'),
+            ':hash' => hash('sha256', $clientId),
             ':window' => intdiv(time(), 60),
             ':total' => RATE_LIMIT_PER_MINUTE,
         ]);
+    }
 
-        $limited = $this->post($this->validRequest(), 'other-key');
-        $otherClient = $this->post($this->validRequest(), 'test-key');
+    private function postFrom(string $ip, string $key): array
+    {
+        $previous = $_SERVER['REMOTE_ADDR'] ?? null;
+        $_SERVER['REMOTE_ADDR'] = $ip;
 
-        $this->assertSame(429, $limited['status']);
-        $this->assertSame(200, $otherClient['status']);
+        try {
+            return $this->post($this->validRequest(), $key);
+        } finally {
+            if ($previous === null) {
+                unset($_SERVER['REMOTE_ADDR']);
+            } else {
+                $_SERVER['REMOTE_ADDR'] = $previous;
+            }
+        }
     }
 
     private function post(array $data, string $key = 'test-key'): array

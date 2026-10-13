@@ -19,8 +19,28 @@ Authorization: Bearer <api-key>
 Keys come from the `API_KEYS` setting (comma-separated). When it is empty,
 authentication is disabled; use that only in development.
 
-Each key (or each IP, when authentication is disabled) may send
-`RATE_LIMIT_PER_MINUTE` requests per minute. Above that, the API answers `429`.
+Each key may send `RATE_LIMIT_PER_MINUTE` requests per minute **from each client
+IP** (with authentication disabled, the limit is per IP alone). Above that, the API
+answers `429`. Counting per IP keeps a key embedded in a public web page from being
+exhausted by a single visitor.
+
+## Browsers (CORS)
+
+Browser apps on other domains may call the API when their origin is listed in
+`CORS_ALLOWED_ORIGINS` (or when it is `*`). Allowed: methods `GET`, `POST`,
+`OPTIONS`; headers `Authorization`, `Content-Type`. CORS only restrains browsers:
+it is not authentication.
+
+```js
+const response = await fetch(`${API_URL}/api/v1/distance`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API_KEY}` },
+  body: JSON.stringify({ origin, destination }),
+});
+```
+
+A key used by a web page is visible to all its visitors: give the page its own key,
+so it can be replaced without touching other consumers.
 
 ## `GET /api/v1/health`
 

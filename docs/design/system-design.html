@@ -72,11 +72,18 @@
     <text class="desc" x="68" y="250">store, delivery app, ERP</text>
     <text class="desc" x="68" y="270">sends addresses, gets km</text>
 
-    <path class="flow" d="M262 240 L314 240" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-    <text class="arrow-label" x="288" y="230" text-anchor="middle">JSON</text>
+    <!-- Left column: Caddy (production HTTPS entry point) ---------------- -->
+    <path class="flow" d="M154 294 L154 362" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text class="arrow-label" x="166" y="333">HTTPS · JSON</text>
 
-    <text class="desc" x="48" y="324">Tip: stores the returned lat/lng</text>
-    <text class="desc" x="48" y="342">and resends it to skip geocoding.</text>
+    <rect class="container" x="48" y="364" width="212" height="92" rx="14"/>
+    <text class="name" x="68" y="394">caddy</text>
+    <use href="#docker" x="182" y="379"/>
+    <text class="desc" x="68" y="416">HTTPS · Let's Encrypt</text>
+    <text class="desc" x="68" y="436">production only</text>
+
+    <path class="flow" d="M262 410 L314 410" marker-end="url(#arrow)"/>
+    <text class="arrow-label" x="288" y="400" text-anchor="middle">HTTP</text>
 
     <!-- Left column: internet ------------------------------------------ -->
     <rect class="internet" x="48" y="560" width="232" height="370" rx="14"/>

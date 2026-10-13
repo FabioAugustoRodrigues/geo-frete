@@ -8,7 +8,7 @@ RewriteRule ^\.git(/|$) - [F,L]
 RewriteRule ^\.htaccess$ - [F,L]
 RewriteRule ^(CLAUDE\.md|phpunit\.xml|docker-compose\.yml)$ - [F,L]
 RewriteRule ^composer\.(json|lock)$ - [F,L]
-RewriteRule ^(bin|data|database|docker|osrm-data|storage|vendor)(/|$) - [F,L]
+RewriteRule ^(bin|data|database|docker|osrm-data|private|storage|vendor)(/|$) - [F,L]
 RewriteRule ^app/(?!views/assets/) - [F,L]
 
 RewriteCond %{REQUEST_FILENAME} !-f

@@ -1,0 +1,11 @@
+# HTTPS entry point of the production stack. Caddy obtains and renews the
+# Let's Encrypt certificate for API_HOST by itself (ports 80 and 443 must be
+# reachable from the internet) and forwards the client IP in X-Forwarded-For.
+{$API_HOST} {
+	encode zstd gzip
+	reverse_proxy api:80 {
+		# Hide the backend's Server header (Apache) from clients.
+		header_down -Server
+	}
+	header -Server
+}

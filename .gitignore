@@ -2,6 +2,9 @@
 .env
 .phpunit.result.cache
 
+# Personal notes kept out of the public repository (e.g. the deploy guide)
+/private/
+
 # Large downloaded datasets: the repository only keeps the scripts that fetch them
 /data/
 /osrm-data/

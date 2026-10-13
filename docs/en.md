@@ -33,10 +33,11 @@ address text -> street-name correction (CNEFE street base)
 
 ![kmzinho system design](images/system-design.png)
 
-Three Docker containers and three external data sources:
+Four Docker containers (three in development) and three external data sources:
 
 | Piece | Role |
 |---|---|
+| **caddy** (production only) | HTTPS entry point: gets and renews the Let's Encrypt certificate, forwards to the API with the client IP |
 | **api** (PHP 8.2 + Apache, iMono) | Layered code: HTTP (auth, rate limit, controllers) → services (orchestration, address resolution, street matching) → geo integrations behind interfaces → repositories (PDO) |
 | **mysql** (MySQL 8.4) | Technical data only: the CNEFE address base, the Nominatim cache, rate-limit counters and the provider throttle |
 | **osrm** (OSRM v26.4) | Serves the preprocessed road graph of the pilot city; routes in milliseconds |
@@ -152,7 +153,8 @@ Arguments: state, city, number of pairs, random seed (same seed, same pairs).
 | `APP_ENV` | `production` | `production`, `development` or `testing` (testing swaps providers for fakes) |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` | `127.0.0.1`, `3306`, `root`, empty, `geo_frete` | MySQL connection |
 | `API_KEYS` | empty | Comma-separated accepted keys; empty disables authentication |
-| `RATE_LIMIT_PER_MINUTE` | `120` | Requests per minute per key (or per IP without authentication) |
+| `RATE_LIMIT_PER_MINUTE` | `120` | Requests per minute per key and client IP (per IP without authentication) |
+| `CORS_ALLOWED_ORIGINS` | `*` | Sites allowed to call the API from a browser (comma-separated), or `*` |
 | `APP_USER_AGENT` | `kmzinho/0.1` | Identifies the app to OpenStreetMap services (required by their usage policy) |
 | `APP_CONTACT` | empty | Optional contact appended to the User-Agent; recommended, never a fake one |
 | `NOMINATIM_URL` | `https://nominatim.openstreetmap.org` | Geocoding fallback |

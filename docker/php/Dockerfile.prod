@@ -1,0 +1,32 @@
+# Production image: code and dependencies baked in (no bind mount, no dev
+# packages), OPcache on, and Apache trusting the reverse proxy for the client IP.
+# Built by docker-compose.prod.yml; the development image is docker/php/Dockerfile.
+
+FROM composer:2.8 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+# The extensions live in the final image, not in this build stage.
+RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --no-autoloader --ignore-platform-reqs
+COPY app ./app
+RUN composer dump-autoload --no-dev --optimize --classmap-authoritative
+
+FROM php:8.2-apache
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libzip-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-install pdo_mysql zip opcache \
+    && a2enmod rewrite remoteip \
+    && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+COPY docker/php/production.ini /usr/local/etc/php/conf.d/zz-production.ini
+# zz-: loaded after Debian's security.conf, so these values win.
+COPY docker/php/apache-production.conf /etc/apache2/conf-enabled/zz-production.conf
+
+WORKDIR /var/www/html
+COPY --chown=www-data:www-data . .
+COPY --from=vendor --chown=www-data:www-data /app/vendor ./vendor
+
+# Logs and CNEFE downloads are volumes in production; the folders must exist
+# and belong to Apache's user for the volumes to inherit the ownership.
+RUN mkdir -p storage/logs data/cnefe && chown -R www-data:www-data storage data

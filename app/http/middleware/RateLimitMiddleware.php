@@ -35,17 +35,26 @@ class RateLimitMiddleware extends Middleware
         }
     }
 
+    /**
+     * Key + IP, not the key alone: a key embedded in a public web page is
+     * shared by every visitor, and one visitor must not exhaust everyone's
+     * quota. A server-side consumer has a single IP, so for it this is the
+     * same as a per-key limit. Behind a reverse proxy, REMOTE_ADDR must be
+     * the real client (see docker/php/apache-production.conf).
+     */
     private function identifyClient(Request $request): string
     {
+        $ip = 'ip:' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+
         // Only trust the key when keys are enforced: with authentication off,
         // any made-up Bearer value would otherwise get a fresh quota.
         if (ApiKeys::isEnabled()) {
             $key = ApiKeys::fromRequest($request);
             if ($key !== null) {
-                return 'key:' . $key;
+                return 'key:' . $key . '|' . $ip;
             }
         }
 
-        return 'ip:' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+        return $ip;
     }
 }
