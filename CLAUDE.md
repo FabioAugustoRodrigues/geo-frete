@@ -110,6 +110,8 @@ docker/                Dockerfiles and data-prep scripts (e.g. OSRM map)
   iMono README. Never grow it: content goes to the full docs.
 - Full docs: `docs/en.md` (English) and `docs/pt-BR.md` (Portuguese), kept in sync:
   a change to one is a change to both. API reference: `docs/API.md` (English only).
+- Planned work: `docs/TODO.md` (short checklist, linked from the README). Read it
+  before touching imports, autocomplete or routing coverage; tick items when done.
 - Logo: `docs/images/logo.png` (opaque white background). The README header uses the
   transparent lockups `logo-lockup-light.png`/`logo-lockup-dark.png` (logo + wordmark)
   inside a `<picture>`, so it works on GitHub's dark theme; sources in `docs/design/`.
