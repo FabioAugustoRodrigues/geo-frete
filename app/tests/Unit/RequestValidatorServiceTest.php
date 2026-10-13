@@ -29,6 +29,40 @@ class RequestValidatorServiceTest extends TestCase
         $this->assertSame(-47.40, $destination->coordinate->lng);
     }
 
+    public function testIncludeGeometryDefaultsToFalse(): void
+    {
+        [, , $includeGeometry] = $this->validator->validateDistanceRequest([
+            'origin' => $this->address(),
+            'destination' => $this->address(),
+        ]);
+
+        $this->assertFalse($includeGeometry);
+    }
+
+    public function testIncludeGeometryAcceptsBooleans(): void
+    {
+        foreach ([true, 'true', 1, '1'] as $value) {
+            [, , $includeGeometry] = $this->validator->validateDistanceRequest([
+                'origin' => $this->address(),
+                'destination' => $this->address(),
+                'include_geometry' => $value,
+            ]);
+
+            $this->assertTrue($includeGeometry, var_export($value, true));
+        }
+    }
+
+    public function testIncludeGeometryRejectsAnythingElse(): void
+    {
+        $errors = $this->errorsFor([
+            'origin' => $this->address(),
+            'destination' => $this->address(),
+            'include_geometry' => 'maybe',
+        ]);
+
+        $this->assertSame(["The field 'include_geometry' must be a boolean."], $errors);
+    }
+
     public function testReportsEveryErrorAtOnce(): void
     {
         $errors = $this->errorsFor([

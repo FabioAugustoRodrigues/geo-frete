@@ -22,14 +22,20 @@ class OsrmRoutingEngine implements RoutingEngineInterface
     ) {
     }
 
-    public function route(Coordinate $from, Coordinate $to): Route
+    public function route(Coordinate $from, Coordinate $to, bool $withPath = false): Route
     {
         // OSRM expects "lng,lat" pairs, the reverse of the domain's lat/lng order.
         $coordinates = sprintf('%F,%F;%F,%F', $from->lng, $from->lat, $to->lng, $to->lat);
 
+        // "full" keeps every bend of the streets, so the line follows them at
+        // street-level zoom; without a path, skip the geometry entirely.
+        $query = $withPath
+            ? ['overview' => 'full', 'geometries' => 'geojson']
+            : ['overview' => 'false'];
+
         $response = $this->httpClient->getJson(
             "{$this->baseUrl}/route/v1/driving/{$coordinates}",
-            ['overview' => 'false'],
+            $query,
             $this->timeoutSeconds
         );
 
@@ -50,8 +56,24 @@ class OsrmRoutingEngine implements RoutingEngineInterface
             durationMin: isset($route['duration']) ? $route['duration'] / 60 : null,
             method: Route::METHOD_ROUTE,
             originSnapKm: $this->snapKm($response, 0),
-            destinationSnapKm: $this->snapKm($response, 1)
+            destinationSnapKm: $this->snapKm($response, 1),
+            path: $withPath ? $this->path($route) : null
         );
+    }
+
+    /**
+     * @return Coordinate[]|null
+     */
+    private function path(array $route): ?array
+    {
+        $points = $route['geometry']['coordinates'] ?? null;
+
+        if (!is_array($points)) {
+            return null;
+        }
+
+        // GeoJSON points are [lng, lat]: back to the domain's order.
+        return array_map(fn (array $point) => new Coordinate((float) $point[1], (float) $point[0]), $points);
     }
 
     public function isAvailable(): bool

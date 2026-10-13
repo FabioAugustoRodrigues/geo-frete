@@ -24,9 +24,9 @@ class DistanceController extends ControllerAbstract
         $data = is_array($request->getData()) ? $request->getData() : [];
 
         try {
-            [$origin, $destination] = $this->validator->validateDistanceRequest($data);
+            [$origin, $destination, $includeGeometry] = $this->validator->validateDistanceRequest($data);
 
-            $result = $this->distanceCalculation->calculate($origin, $destination);
+            $result = $this->distanceCalculation->calculate($origin, $destination, $includeGeometry);
 
             return $this->respondJson(["data" => $result, "message" => ""], 200);
         } catch (ValidationException $e) {

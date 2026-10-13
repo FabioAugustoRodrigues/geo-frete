@@ -9,6 +9,11 @@ final class Route
     /** Straight line x route factor, used when no routing engine is available. */
     public const METHOD_ESTIMATE = 'estimate';
 
+    /**
+     * @param Coordinate[]|null $path the points the route goes through, origin to
+     *                               destination; null when not requested or when the
+     *                               method has no real path (estimate)
+     */
     public function __construct(
         public readonly float $distanceKm,
         /** Null when the method cannot estimate travel time. */
@@ -19,7 +24,8 @@ final class Route
          * road. Null when the method does not snap to roads.
          */
         public readonly ?float $originSnapKm = null,
-        public readonly ?float $destinationSnapKm = null
+        public readonly ?float $destinationSnapKm = null,
+        public readonly ?array $path = null
     ) {
     }
 }

@@ -11,7 +11,7 @@
   preprocess the whole Brazil extract (~2 GB) on a machine with more RAM.
 
 ## API
-- [ ] Route geometry, to draw the real path on a map.
+- [x] Route geometry, to draw the real path on a map (`include_geometry`).
 - [ ] Multiple stops in one request (A → B → C).
 - [ ] Accept `lat`/`lng` without the address fields.
 - [ ] Reverse geocoding (nearest known address for a point).

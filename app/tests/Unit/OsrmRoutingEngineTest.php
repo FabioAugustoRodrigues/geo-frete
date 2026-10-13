@@ -68,6 +68,44 @@ class OsrmRoutingEngineTest extends TestCase
         $this->assertSame(3, $this->http->calls[0]['timeout']);
     }
 
+    public function testNoPathUnlessRequested(): void
+    {
+        $this->http->response = self::OK_RESPONSE;
+
+        $route = $this->engine->route($this->origin(), $this->destination());
+
+        $this->assertNull($route->path);
+    }
+
+    public function testRequestsAndConvertsTheGeoJsonPath(): void
+    {
+        $response = self::OK_RESPONSE;
+        $response['routes'][0]['geometry'] = [
+            'type' => 'LineString',
+            'coordinates' => [[-47.405842, -22.567068], [-47.4, -22.57], [-47.391889, -22.576532]],
+        ];
+        $this->http->response = $response;
+
+        $route = $this->engine->route($this->origin(), $this->destination(), true);
+
+        $this->assertSame(['overview' => 'full', 'geometries' => 'geojson'], $this->http->calls[0]['query']);
+        $this->assertCount(3, $route->path);
+        // GeoJSON [lng, lat] back to the domain's lat/lng.
+        $this->assertSame(-22.567068, $route->path[0]->lat);
+        $this->assertSame(-47.405842, $route->path[0]->lng);
+        $this->assertSame(-22.576532, $route->path[2]->lat);
+    }
+
+    public function testMissingGeometryInTheAnswerGivesNoPath(): void
+    {
+        $this->http->response = self::OK_RESPONSE;
+
+        $route = $this->engine->route($this->origin(), $this->destination(), true);
+
+        $this->assertNull($route->path);
+        $this->assertSame(Route::METHOD_ROUTE, $route->method);
+    }
+
     public function testNoAnswerIsUnavailable(): void
     {
         $this->http->response = null;

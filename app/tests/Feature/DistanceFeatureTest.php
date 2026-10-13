@@ -41,6 +41,43 @@ class DistanceFeatureTest extends FeatureTestCase
         $this->assertFalse($data['requires_confirmation']);
     }
 
+    public function testNoGeometryUnlessRequested(): void
+    {
+        $response = $this->post($this->validRequest());
+
+        $this->assertArrayNotHasKey('geometry', $response['body']['data']);
+    }
+
+    public function testGeometryIsAGeoJsonLineFromOriginToDestination(): void
+    {
+        $response = $this->post($this->validRequest() + ['include_geometry' => true]);
+
+        $this->assertSame(200, $response['status']);
+
+        $data = $response['body']['data'];
+        $this->assertSame('LineString', $data['geometry']['type']);
+        $this->assertCount(3, $data['geometry']['coordinates']);
+
+        // GeoJSON order is [lng, lat]: the first point is the origin.
+        [$lng, $lat] = $data['geometry']['coordinates'][0];
+        $this->assertEqualsWithDelta($data['origin']['lng'], $lng, 0.000001);
+        $this->assertEqualsWithDelta($data['origin']['lat'], $lat, 0.000001);
+
+        [$lng, $lat] = $data['geometry']['coordinates'][2];
+        $this->assertEqualsWithDelta($data['destination']['lng'], $lng, 0.000001);
+    }
+
+    public function testEstimateHasNullGeometry(): void
+    {
+        RoutingEngineFake::makeUnavailable();
+
+        $response = $this->post($this->validRequest() + ['include_geometry' => true]);
+
+        $this->assertSame('estimate', $response['body']['data']['method']);
+        $this->assertArrayHasKey('geometry', $response['body']['data']);
+        $this->assertNull($response['body']['data']['geometry']);
+    }
+
     public function testFallsBackToTheEstimateWhenRoutingIsDown(): void
     {
         RoutingEngineFake::makeUnavailable();

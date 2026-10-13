@@ -87,7 +87,9 @@ docker/                Dockerfiles and data-prep scripts (e.g. OSRM map)
 - Declared types on parameters, properties and returns; constructor promotion and
   `public readonly` in models. Named arguments when they help readability.
 - **Coordinates**: always `lat, lng` order in the domain. OSRM uses `lng,lat`: convert
-  only inside the OSRM class, never outside it.
+  only inside the OSRM class, never outside it. The one other exception is the
+  response's GeoJSON `geometry` (`[lng, lat]` by spec), built only in
+  `DistanceCalculationService::toGeoJsonLine()`.
 - **Units**: the domain uses km (`float`) and minutes. Meters/seconds exist only inside
   integration classes.
 - Configuration: every new variable goes into `.env.example` (with a comment), becomes a

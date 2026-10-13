@@ -51,6 +51,23 @@ class RoutingEngineWithFallbackTest extends TestCase
         $this->assertFalse($this->engine->isAvailable(), 'health must reflect the primary engine');
     }
 
+    public function testPassesThePathRequestToThePrimaryEngine(): void
+    {
+        $route = $this->engine->route(...[...$this->points(), true]);
+
+        $this->assertCount(3, $route->path);
+    }
+
+    public function testEstimateHasNoPathEvenWhenRequested(): void
+    {
+        RoutingEngineFake::makeUnavailable();
+
+        $route = $this->engine->route(...[...$this->points(), true]);
+
+        $this->assertSame(Route::METHOD_ESTIMATE, $route->method);
+        $this->assertNull($route->path);
+    }
+
     /**
      * @return Coordinate[]
      */

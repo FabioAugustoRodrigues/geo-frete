@@ -105,6 +105,12 @@ Computes the road distance between two addresses.
 | `lat`, `lng` | no | must be sent together and lie inside Brazil; skip geocoding entirely |
 | `street_confirmed` | no | boolean; `true` skips street-name correction (send it after the user picked a suggestion) |
 
+Top-level option:
+
+| Field | Required | Rule |
+|---|---|---|
+| `include_geometry` | no | boolean; `true` adds `geometry`, the route line to draw on a map |
+
 ### Response `200`
 
 ```json
@@ -155,6 +161,27 @@ Computes the road distance between two addresses.
   point on a map.
 - Routes go from origin to destination: one-way streets can make the way back
   longer or shorter.
+
+### Route geometry
+
+With `"include_geometry": true`, the response also has `geometry`, the route as a
+[GeoJSON](https://geojson.org/) `LineString`, from origin to destination along the
+streets:
+
+```json
+"geometry": {
+  "type": "LineString",
+  "coordinates": [[-47.401104, -22.562685], [-47.400721, -22.562952], "...", [-47.399845, -22.563629]]
+}
+```
+
+- Points are **`[lng, lat]`**, as GeoJSON requires (the reverse of the `lat`/`lng`
+  fields elsewhere). Leaflet's `L.geoJSON` and most map libraries read it as-is.
+- The line starts and ends where OSRM snapped the addresses to the road (see
+  `snap_distance_km`), so it may sit a few meters from `origin`/`destination`.
+- `geometry` is `null` when `method` is `estimate`: there is no real path, so draw
+  at most a straight dashed line.
+- Without the option, the field is absent and the response stays small.
 
 ### Errors
 

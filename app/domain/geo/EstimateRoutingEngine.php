@@ -16,7 +16,11 @@ class EstimateRoutingEngine implements RoutingEngineInterface
     {
     }
 
-    public function route(Coordinate $from, Coordinate $to): Route
+    /**
+     * There is no real path to draw: $withPath is ignored and path stays null,
+     * so a map shows that the distance is only an estimate.
+     */
+    public function route(Coordinate $from, Coordinate $to, bool $withPath = false): Route
     {
         return new Route(
             distanceKm: $this->distanceService->estimatedRouteKm($from, $to),

@@ -25,7 +25,8 @@ class RequestValidatorService extends ServiceAbstract
     ];
 
     /**
-     * @return array{0: Address, 1: Address} origin and destination
+     * @return array{0: Address, 1: Address, 2: bool} origin, destination and
+     *                                                whether to include the route geometry
      *
      * @throws ValidationException listing every problem found
      */
@@ -42,11 +43,24 @@ class RequestValidatorService extends ServiceAbstract
             $errors = array_merge($errors, $this->validateAddress($data[$label], $label));
         }
 
+        $includeGeometry = false;
+        if (array_key_exists('include_geometry', $data) && $data['include_geometry'] !== null) {
+            $flag = is_scalar($data['include_geometry'])
+                ? filter_var($data['include_geometry'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
+                : null;
+
+            if ($flag === null) {
+                $errors[] = "The field 'include_geometry' must be a boolean.";
+            } else {
+                $includeGeometry = $flag;
+            }
+        }
+
         if (!empty($errors)) {
             throw new ValidationException($errors);
         }
 
-        return [Address::fromArray($data['origin']), Address::fromArray($data['destination'])];
+        return [Address::fromArray($data['origin']), Address::fromArray($data['destination']), $includeGeometry];
     }
 
     /**

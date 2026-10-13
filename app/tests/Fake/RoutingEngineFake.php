@@ -41,7 +41,11 @@ class RoutingEngineFake implements RoutingEngineInterface
         self::$snapKm = $km;
     }
 
-    public function route(Coordinate $from, Coordinate $to): Route
+    /**
+     * The fake path is origin, a midpoint, then destination: enough to check
+     * ordering and the GeoJSON conversion.
+     */
+    public function route(Coordinate $from, Coordinate $to, bool $withPath = false): Route
     {
         if (self::$unavailable) {
             throw new RoutingUnavailableException('Fake routing engine is down.');
@@ -54,7 +58,10 @@ class RoutingEngineFake implements RoutingEngineInterface
             durationMin: $distanceKm / self::SPEED_KMH * 60,
             method: Route::METHOD_ROUTE,
             originSnapKm: self::$snapKm,
-            destinationSnapKm: self::$snapKm
+            destinationSnapKm: self::$snapKm,
+            path: $withPath
+                ? [$from, new Coordinate(($from->lat + $to->lat) / 2, ($from->lng + $to->lng) / 2), $to]
+                : null
         );
     }
 

@@ -4,6 +4,7 @@ namespace app\domain\service;
 
 use app\domain\geo\RoutingEngineInterface;
 use app\domain\model\Address;
+use app\domain\model\Coordinate;
 use app\domain\model\ResolvedAddress;
 
 class DistanceCalculationService extends ServiceAbstract
@@ -21,16 +22,19 @@ class DistanceCalculationService extends ServiceAbstract
     ) {
     }
 
-    public function calculate(Address $origin, Address $destination): array
+    /**
+     * @param bool $includeGeometry add "geometry" (the route line) to the answer
+     */
+    public function calculate(Address $origin, Address $destination, bool $includeGeometry = false): array
     {
         $resolvedOrigin = $this->addressResolver->resolve($origin, 'origin');
         // The destination is usually near the origin (deliveries are local),
         // so the origin biases the destination search.
         $resolvedDestination = $this->addressResolver->resolve($destination, 'destination', $resolvedOrigin->coordinate);
 
-        $route = $this->routingEngine->route($resolvedOrigin->coordinate, $resolvedDestination->coordinate);
+        $route = $this->routingEngine->route($resolvedOrigin->coordinate, $resolvedDestination->coordinate, $includeGeometry);
 
-        return [
+        $result = [
             'distance_km' => round($route->distanceKm, 2),
             'duration_min' => $route->durationMin === null ? null : round($route->durationMin, 1),
             'straight_line_km' => round(
@@ -42,6 +46,30 @@ class DistanceCalculationService extends ServiceAbstract
             'destination' => $this->describe($resolvedDestination, $route->destinationSnapKm),
             'requires_confirmation' => $this->requiresConfirmation($resolvedOrigin, $route->originSnapKm)
                 || $this->requiresConfirmation($resolvedDestination, $route->destinationSnapKm),
+        ];
+
+        // Only when asked: a route line can hold hundreds of points.
+        if ($includeGeometry) {
+            $result['geometry'] = $route->path === null ? null : $this->toGeoJsonLine($route->path);
+        }
+
+        return $result;
+    }
+
+    /**
+     * The one place where coordinates leave the domain's lat/lng order: GeoJSON,
+     * the standard map libraries read, requires [lng, lat].
+     *
+     * @param Coordinate[] $path
+     */
+    private function toGeoJsonLine(array $path): array
+    {
+        return [
+            'type' => 'LineString',
+            'coordinates' => array_map(
+                fn (Coordinate $point) => [round($point->lng, 6), round($point->lat, 6)],
+                $path
+            ),
         ];
     }
 

@@ -78,7 +78,7 @@ Referência completa (em inglês): [API.md](API.md).
 
 | Endpoint | |
 |---|---|
-| `POST /api/v1/distance` | distância de rota e tempo de viagem entre dois endereços |
+| `POST /api/v1/distance` | distância de rota e tempo de viagem entre dois endereços, com a linha da rota opcional |
 | `GET /api/v1/streets/suggestions` | autocomplete de nome de rua pela base local |
 | `GET /api/v1/cities` | cidades com base de endereços local, com a área de cada uma no mapa |
 | `GET /api/v1/health` | estado do banco e do motor de rotas |

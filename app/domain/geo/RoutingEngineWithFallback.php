@@ -18,14 +18,14 @@ class RoutingEngineWithFallback implements RoutingEngineInterface
     ) {
     }
 
-    public function route(Coordinate $from, Coordinate $to): Route
+    public function route(Coordinate $from, Coordinate $to, bool $withPath = false): Route
     {
         try {
-            return $this->primary->route($from, $to);
+            return $this->primary->route($from, $to, $withPath);
         } catch (RoutingUnavailableException $e) {
             error_log("[ROUTING FALLBACK] " . $e->getMessage());
 
-            return $this->fallback->route($from, $to);
+            return $this->fallback->route($from, $to, $withPath);
         }
     }
 
