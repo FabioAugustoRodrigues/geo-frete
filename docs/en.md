@@ -78,6 +78,7 @@ Full reference: [API.md](API.md).
 |---|---|
 | `POST /api/v1/distance` | road distance and driving time between two addresses |
 | `GET /api/v1/streets/suggestions` | street-name autocomplete from the local base |
+| `GET /api/v1/cities` | cities with a local address base, with their map bounds |
 | `GET /api/v1/health` | database and routing-engine status |
 
 ## Running locally

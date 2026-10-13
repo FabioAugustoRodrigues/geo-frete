@@ -19,6 +19,10 @@ abstract class Connection
                 self::$connection = new PDO($dsn, DB_USER, DB_PASS);
 
                 self::$connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+                // Every DATETIME written with NOW() is UTC, whatever the MySQL
+                // server's own time zone: PHP reads them back as UTC.
+                self::$connection->exec("SET time_zone = '+00:00'");
             } catch (PDOException $e) {
                 error_log("[DATABASE CONNECTION ERROR] " . $e->getMessage());
                 throw new ApplicationException("Unable to connect to the database.");

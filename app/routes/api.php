@@ -3,6 +3,7 @@
 namespace app\routes;
 
 use app\core\controller\Router;
+use app\http\controller\CityController;
 use app\http\controller\DistanceController;
 use app\http\controller\HealthController;
 use app\http\controller\StreetController;
@@ -24,4 +25,5 @@ Router::get("/api/v1/health", HealthController::class, "health");
 Router::group(['middleware' => [ApiKeyMiddleware::class, RateLimitMiddleware::class]], function () {
     Router::post("/api/v1/distance", DistanceController::class, "calculate");
     Router::get("/api/v1/streets/suggestions", StreetController::class, "suggestions");
+    Router::get("/api/v1/cities", CityController::class, "index");
 });

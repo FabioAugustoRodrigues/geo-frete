@@ -38,6 +38,7 @@ final class CnefeFixture
         $pdo = Connection::getConnection();
         $pdo->exec('DELETE FROM cnefe_addresses');
         $pdo->exec('DELETE FROM cnefe_streets');
+        $pdo->exec('DELETE FROM cnefe_city_bounds');
         $pdo->exec('DELETE FROM cnefe_cities');
     }
 

@@ -206,6 +206,43 @@ curl "http://localhost:8080/api/v1/streets/suggestions?street=senador+verg&city=
 `available: false` (with an empty list) means the city has no imported street
 base. Names come from CNEFE, which has no accents (`Rua Barao de Campinas`).
 
+## `GET /api/v1/cities`
+
+Cities with a local address base (CNEFE), where addresses are located by house
+number and street names are corrected. Cities are imported by the operator; the
+API only lists them. Any other city still works, through Nominatim only.
+
+```bash
+curl "http://localhost:8080/api/v1/cities" -H "Authorization: Bearer YOUR_KEY"
+```
+
+```json
+{
+  "data": {
+    "cities": [
+      {
+        "name": "Limeira",
+        "state": "SP",
+        "ibge_code": 3526902,
+        "streets": 3013,
+        "house_numbers": 92588,
+        "bounds": { "south": -22.716667, "west": -47.493357, "north": -22.476695, "east": -47.213705 },
+        "imported_at": "2026-10-13T20:18:29+00:00"
+      }
+    ]
+  },
+  "message": ""
+}
+```
+
+- Sorted by state, then name. An empty list means no city was imported yet.
+- `ibge_code`: the municipality's IBGE code, usable with IBGE's public APIs (for
+  example, to fetch the city outline).
+- `bounds`: the box around the city's known house numbers, ready for a map's
+  "fit bounds". `null` for a city imported before this field existed, until it is
+  imported again.
+- `imported_at`: ISO 8601, in UTC.
+
 ## Recommendations for consumers
 
 - **Store the returned `lat`/`lng`** with the address and send them back on

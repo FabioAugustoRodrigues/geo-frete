@@ -54,6 +54,23 @@ CREATE TABLE IF NOT EXISTS cnefe_cities (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
+-- cnefe_city_bounds
+-- Bounding box of each imported city's house numbers, computed at import
+-- time so listing cities never scans the address table. A separate table
+-- (not columns on cnefe_cities) keeps this schema idempotent: MySQL has no
+-- "ADD COLUMN IF NOT EXISTS". Cities imported before it existed have no
+-- row until they are imported again.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS cnefe_city_bounds (
+    city_code INT UNSIGNED NOT NULL,
+    south DECIMAL(10,7) NOT NULL,
+    west DECIMAL(10,7) NOT NULL,
+    north DECIMAL(10,7) NOT NULL,
+    east DECIMAL(10,7) NOT NULL,
+    PRIMARY KEY (city_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
 -- cnefe_streets
 -- Street names per city, for street-name correction and autocomplete.
 -- The type ("rua", "avenida"...) is kept apart from the name because

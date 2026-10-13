@@ -132,6 +132,37 @@ class CnefeFeatureTest extends FeatureTestCase
         $this->assertSame(401, $response['status']);
     }
 
+    public function testCitiesEndpointListsImportedCities(): void
+    {
+        $response = $this->request('GET', '/api/v1/cities', [], self::HEADERS);
+
+        $this->assertSame(200, $response['status']);
+
+        $city = $response['body']['data']['cities'][0];
+        $this->assertSame(CnefeFixture::CITY, $city['name']);
+        $this->assertSame('SP', $city['state']);
+        $this->assertSame(CnefeFixture::CITY_CODE, $city['ibge_code']);
+        $this->assertSame(4, $city['streets']);
+        $this->assertSame(7, $city['house_numbers']);
+        $this->assertEqualsWithDelta(-22.59, $city['bounds']['south'], 0.0000001);
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/', $city['imported_at']);
+    }
+
+    public function testCitiesEndpointWithNothingImported(): void
+    {
+        CnefeFixture::clear();
+
+        $response = $this->request('GET', '/api/v1/cities', [], self::HEADERS);
+
+        $this->assertSame(200, $response['status']);
+        $this->assertSame([], $response['body']['data']['cities']);
+    }
+
+    public function testCitiesEndpointRequiresAnApiKey(): void
+    {
+        $this->assertSame(401, $this->request('GET', '/api/v1/cities')['status']);
+    }
+
     private function distance(array $origin, array $destination): array
     {
         return $this->request('POST', '/api/v1/distance', ['origin' => $origin, 'destination' => $destination], self::HEADERS);

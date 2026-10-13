@@ -29,6 +29,38 @@ class CnefeRepository extends RepositoryAbstract
     }
 
     /**
+     * Every imported city, by state then name.
+     *
+     * @return array<int, array{city_code: int, state: string, name: string, street_count: int,
+     *     address_count: int, imported_at: string, bounds: array{south: float, west: float,
+     *     north: float, east: float}|null}>
+     */
+    public function listCities(): array
+    {
+        $rows = Connection::getConnection()->query(
+            "SELECT c.city_code, c.state, c.name, c.street_count, c.address_count, c.imported_at,
+                    b.south, b.west, b.north, b.east
+             FROM cnefe_cities c LEFT JOIN cnefe_city_bounds b ON b.city_code = c.city_code
+             ORDER BY c.state, c.name"
+        )->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(fn ($row) => [
+            'city_code' => (int) $row['city_code'],
+            'state' => $row['state'],
+            'name' => $row['name'],
+            'street_count' => (int) $row['street_count'],
+            'address_count' => (int) $row['address_count'],
+            'imported_at' => $row['imported_at'],
+            'bounds' => $row['south'] === null ? null : [
+                'south' => (float) $row['south'],
+                'west' => (float) $row['west'],
+                'north' => (float) $row['north'],
+                'east' => (float) $row['east'],
+            ],
+        ], $rows);
+    }
+
+    /**
      * Streets whose normalized name is exactly this (one per street type).
      *
      * @return array<int, array{id: int, street_type: string, name: string}>
@@ -170,6 +202,7 @@ class CnefeRepository extends RepositoryAbstract
 
             $addressRows = [];
             $addressCount = 0;
+            $bounds = null;
 
             foreach ($streets as $street) {
                 $insertStreet->execute([
@@ -185,6 +218,7 @@ class CnefeRepository extends RepositoryAbstract
                 foreach ($street['addresses'] as $number => $address) {
                     $addressRows[] = [$streetId, $number, $address['lat'], $address['lng'], $address['geo_level'], $address['postal_code']];
                     $addressCount++;
+                    $bounds = $this->extendBounds($bounds, $address['lat'], $address['lng']);
 
                     if (count($addressRows) === self::INSERT_BATCH) {
                         $this->insertAddresses($pdo, $addressRows);
@@ -208,6 +242,19 @@ class CnefeRepository extends RepositoryAbstract
                 ':addresses' => $addressCount,
             ]);
 
+            if ($bounds !== null) {
+                $pdo->prepare(
+                    "INSERT INTO cnefe_city_bounds (city_code, south, west, north, east)
+                     VALUES (:city, :south, :west, :north, :east)"
+                )->execute([
+                    ':city' => $city['city_code'],
+                    ':south' => $bounds['south'],
+                    ':west' => $bounds['west'],
+                    ':north' => $bounds['north'],
+                    ':east' => $bounds['east'],
+                ]);
+            }
+
             $pdo->commit();
         } catch (Throwable $e) {
             $pdo->rollBack();
@@ -223,7 +270,27 @@ class CnefeRepository extends RepositoryAbstract
         $statement->execute([':city' => $cityCode]);
 
         $pdo->prepare("DELETE FROM cnefe_streets WHERE city_code = :city")->execute([':city' => $cityCode]);
+        $pdo->prepare("DELETE FROM cnefe_city_bounds WHERE city_code = :city")->execute([':city' => $cityCode]);
         $pdo->prepare("DELETE FROM cnefe_cities WHERE city_code = :city")->execute([':city' => $cityCode]);
+    }
+
+    /**
+     * @param array{south: float, west: float, north: float, east: float}|null $bounds
+     *
+     * @return array{south: float, west: float, north: float, east: float}
+     */
+    private function extendBounds(?array $bounds, float $lat, float $lng): array
+    {
+        if ($bounds === null) {
+            return ['south' => $lat, 'west' => $lng, 'north' => $lat, 'east' => $lng];
+        }
+
+        return [
+            'south' => min($bounds['south'], $lat),
+            'west' => min($bounds['west'], $lng),
+            'north' => max($bounds['north'], $lat),
+            'east' => max($bounds['east'], $lng),
+        ];
     }
 
     /**
