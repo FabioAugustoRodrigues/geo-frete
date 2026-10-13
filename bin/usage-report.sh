@@ -5,6 +5,8 @@
 #   sh bin/usage-report.sh [hours=24] [stack=kmzinho]
 #
 # "stack" is the Compose project name: kmzinho in production, geo-frete locally.
+# Request counts come from the api container's output, which starts empty
+# whenever the container is recreated (e.g. on every deploy).
 set -eu
 
 HOURS="${1:-24}"
@@ -49,6 +51,15 @@ fi
 if docker inspect "$MYSQL" > /dev/null 2>&1; then
     echo
     echo "== Nominatim lookups per day, and the cities asked for (last 7 days)"
+
+    LOOKUPS=$(docker exec "$MYSQL" sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" -N 2>/dev/null -e "
+        SELECT COUNT(*) FROM geocoding_cache WHERE created_at >= NOW() - INTERVAL 7 DAY;"')
+
+    if [ "${LOOKUPS:-0}" = "0" ]; then
+        echo "none: every address was resolved by CNEFE (or sent with lat/lng)"
+        exit 0
+    fi
+
     docker exec "$MYSQL" sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" --table 2>/dev/null -e "
         SELECT DATE(created_at) AS day, COUNT(*) AS lookups FROM geocoding_cache
         WHERE created_at >= NOW() - INTERVAL 7 DAY GROUP BY day ORDER BY day DESC;
