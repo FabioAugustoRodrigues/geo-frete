@@ -31,6 +31,7 @@ docker compose run --rm map-clip     # download region + clip city (OSRM map, st
 docker compose run --rm map-build    # OSRM preprocessing (step 2), then: docker compose restart osrm
 docker compose exec api php bin/import-cnefe.php SP Limeira   # load a city's CNEFE address base
 docker compose exec api php bin/compare-distances.php SP Limeira 300 42   # route-factor study (README "Findings")
+sh bin/usage-report.sh 24 kmzinho   # who called the API in the last 24h (stack "geo-frete" locally)
 vendor/bin/phpunit                   # all tests
 vendor/bin/phpunit --testsuite Unit  # unit only (no database needed)
 php -S localhost:8080 index.php      # built-in server, without Docker

@@ -8,10 +8,19 @@
 
 name: kmzinho
 
+# Docker keeps container output forever by default: rotate it so logs can never
+# fill the disk (5 files x 10 MB per container, oldest dropped first).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   caddy:
     image: caddy:2.8.4
     restart: unless-stopped
+    logging: *logging
     ports:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
@@ -31,6 +40,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile.prod
     restart: unless-stopped
+    logging: *logging
     env_file: ${ENV_FILE:-.env}
     environment:
       APP_ENV: production
@@ -47,6 +57,7 @@ services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
+    logging: *logging
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:?Set DB_ROOT_PASS in .env}
       MYSQL_DATABASE: ${DB_NAME:?Set DB_NAME in .env}
@@ -66,6 +77,7 @@ services:
     # Keep in sync with map-build: OSRM only reads files built by its own version.
     image: ghcr.io/project-osrm/osrm-backend:v26.4.0
     restart: unless-stopped
+    logging: *logging
     command: osrm-routed --algorithm mld /data/${OSRM_MAP_NAME:-limeira}.osrm
     volumes:
       - ./osrm-data:/data
