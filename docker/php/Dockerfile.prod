@@ -24,7 +24,12 @@ COPY docker/php/production.ini /usr/local/etc/php/conf.d/zz-production.ini
 COPY docker/php/apache-production.conf /etc/apache2/conf-enabled/zz-production.conf
 
 WORKDIR /var/www/html
-COPY --chown=www-data:www-data . .
+# An allowlist, not "COPY . .": only what runs in production enters the web
+# root, so no project file (compose files, docs, notes) can ever be served.
+COPY --chown=www-data:www-data index.php .htaccess ./
+COPY --chown=www-data:www-data app ./app
+COPY --chown=www-data:www-data bin ./bin
+COPY --chown=www-data:www-data database ./database
 COPY --from=vendor --chown=www-data:www-data /app/vendor ./vendor
 
 # Logs and CNEFE downloads are volumes in production; the folders must exist

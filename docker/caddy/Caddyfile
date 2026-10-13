@@ -2,10 +2,25 @@
 # Let's Encrypt certificate for API_HOST by itself (ports 80 and 443 must be
 # reachable from the internet) and forwards the client IP in X-Forwarded-For.
 {$API_HOST} {
+	# A distance request is well under 2 KB: refuse huge bodies before they
+	# reach PHP and tie up memory.
+	request_body {
+		max_size 64KB
+	}
+
+	header {
+		# Browsers must always use HTTPS for this host (one year).
+		Strict-Transport-Security "max-age=31536000"
+		# Responses are JSON: never let a browser guess another type.
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
 	encode zstd gzip
+
 	reverse_proxy api:80 {
 		# Hide the backend's Server header (Apache) from clients.
 		header_down -Server
 	}
-	header -Server
 }

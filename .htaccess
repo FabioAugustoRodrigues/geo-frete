@@ -1,15 +1,18 @@
 RewriteEngine On
 
 # The document root is the project root (there is no isolated "public/"
-# folder), so sensitive files and folders must be blocked explicitly.
-# Without this, .env, logs and data files would be downloadable by URL.
-RewriteRule ^\.env - [F,L]
-RewriteRule ^\.git(/|$) - [F,L]
-RewriteRule ^\.htaccess$ - [F,L]
-RewriteRule ^(CLAUDE\.md|phpunit\.xml|docker-compose\.yml)$ - [F,L]
-RewriteRule ^composer\.(json|lock)$ - [F,L]
-RewriteRule ^(bin|data|database|docker|osrm-data|private|storage|vendor)(/|$) - [F,L]
-RewriteRule ^app/(?!views/assets/) - [F,L]
+# folder), so everything that is not the front controller must be blocked.
+# Rules match by kind, not by name, so a new file is never exposed by
+# forgetting to list it here.
+
+# Hidden files and folders: .env, .git, .github, .htaccess...
+RewriteRule (^|/)\. - [F,L]
+
+# Configuration, documentation, data and scripts, whatever their name.
+RewriteRule \.(ya?ml|md|json|lock|sql|sh|ini|conf|xml|dist|example|log|bak)$ - [F,L]
+
+# Folders that are never served (app/ includes the code and the views).
+RewriteRule ^(app|bin|data|database|docker|docs|osrm-data|private|storage|vendor)(/|$) - [F,L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
